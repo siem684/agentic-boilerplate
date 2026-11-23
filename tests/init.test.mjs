@@ -20,7 +20,7 @@ function spawned() {
 const run = (root, ...args) =>
   spawnSync(process.execPath, [SCRIPT, "--root", root, ...args], { encoding: "utf8" });
 const read = (root, f) => readFileSync(join(root, f), "utf8");
-const INIT = ["--name", "Demo", "--description", "A demo app.", "--owner", "@acme", "--check", "npm test"];
+const INIT = ["--name", "Demo", "--description", "A demo app.", "--owner", "@acme", "--check", "npm test", "--offline"];
 
 test("init replaces every placeholder in CLAUDE.md, CODEOWNERS and ci.yml", () => {
   const root = spawned();
@@ -45,6 +45,19 @@ test("init is idempotent: a second run changes nothing and succeeds", () => {
   const r = run(root, ...INIT);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(read(root, "CLAUDE.md"), "# Demo\n\nA demo app.\n\nRun: npm test\n");
+  rmSync(root, { recursive: true });
+});
+
+test("init rejects invalid values, names every problem and changes nothing", () => {
+  const root = spawned();
+  const r = run(root, "--name", "Demo", "--description", "ok", "--owner", "@me", "--check", "npm test", "--offline");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--owner/);
+  assert.match(read(root, "CLAUDE.md"), /\{\{PROJECT_NAME\}\}/, "must not half-apply");
+  const r2 = run(root, "--name", "x\ny", "--description", "ok", "--owner", "notahandle", "--check", "npm test", "--offline");
+  assert.equal(r2.status, 1);
+  assert.match(r2.stderr, /--name/);
+  assert.match(r2.stderr, /--owner/);
   rmSync(root, { recursive: true });
 });
 

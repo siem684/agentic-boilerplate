@@ -1,20 +1,26 @@
 #!/usr/bin/env node
 // init.mjs: fill in the template placeholders of a freshly spawned project.
-// Offline. Safe to re-run: once the placeholders are gone it changes nothing.
+// Safe to re-run: once the placeholders are gone it changes nothing.
 //
 //   node scripts/init.mjs --name <n> --description <d> --owner <@user|@org/team> --check "<cmd>"
 //
-// Options: --root <dir> (default: current directory)
+// Inputs are validated first; nothing is written if any is invalid. The owner is
+// also looked up with `gh api` (a warning if that is not possible).
+// Options: --root <dir> (default: current directory); --offline skips the `gh` lookup.
 // Afterwards run `node scripts/check.mjs` to see what is still missing.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { PLACEHOLDER_FILES } from "./placeholders.mjs";
+import { validateInputs, ownerExists } from "./validate.mjs";
 
 const args = process.argv.slice(2);
 function take(flag) {
   const i = args.indexOf(flag);
   return i === -1 ? undefined : args.splice(i, 2)[1];
 }
+const offlineAt = args.indexOf("--offline");
+const offline = offlineAt !== -1;
+if (offline) args.splice(offlineAt, 1);
 const root = resolve(take("--root") ?? process.cwd());
 const flags = { PROJECT_NAME: "--name", PROJECT_DESCRIPTION: "--description", OWNER: "--owner", CHECK_COMMANDS: "--check" };
 const values = Object.fromEntries(Object.entries(flags).map(([k, f]) => [k, take(f)]));
@@ -24,6 +30,20 @@ if (missing.length) {
   console.error(`Missing: ${missing.map((k) => flags[k]).join(", ")}`);
   console.error('Usage: init.mjs --name <n> --description <d> --owner <@user> --check "<cmd>"');
   process.exit(1);
+}
+
+const problems = validateInputs(values);
+if (problems.length) {
+  for (const p of problems) console.error(p);
+  process.exit(1);
+}
+if (!offline) {
+  const exists = ownerExists(values.OWNER);
+  if (exists === false) {
+    console.error(`--owner: GitHub user or org "${values.OWNER.slice(1).split("/")[0]}" does not exist`);
+    process.exit(1);
+  }
+  if (exists === null) console.warn("warning: could not verify --owner with `gh`; check the handle yourself");
 }
 
 // Compute everything first so a failure cannot leave a half-initialised repo.

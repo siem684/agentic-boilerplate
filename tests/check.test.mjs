@@ -23,7 +23,7 @@ const run = (root, ...args) =>
 const read = (root, f) => readFileSync(join(root, f), "utf8");
 
 const init = (root) =>
-  spawnSync(process.execPath, [INIT_SCRIPT, "--root", root, "--name", "Demo", "--description", "A demo app.", "--owner", "@acme", "--check", "npm test"]);
+  spawnSync(process.execPath, [INIT_SCRIPT, "--root", root, "--name", "Demo", "--description", "A demo app.", "--owner", "@acme", "--check", "npm test", "--offline"]);
 
 test("check fails and names the files that still contain placeholders", () => {
   const root = spawned();
