@@ -12,7 +12,7 @@ Code, comments, commits, PR text and docs are in English.
 - Do not edit `_bmad/`, `_bmad-output/`, `.claude/` or `.github/workflows/`. These are protected paths; only a human changes them.
 - No real personal data in code, tests, fixtures or PR text.
 - Never commit secrets. Keys live in repository secrets, not in files.
-- Architecture decisions are recorded in `docs/adr/`.
+- Architecture decisions are recorded in `docs/adr/`. The template's own decisions (agent setup, guardrails) are in `docs/agentic/adr/`; "ADR 000x" in agent and workflow files refers to those.
 - Merging is a human decision. Never merge your own PR.
 
 <!-- Project-specific rules go here: stack, browser/device targets, accessibility level, scope limits. -->

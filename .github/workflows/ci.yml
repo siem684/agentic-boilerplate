@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Replace the steps below with the project's checks ({{CHECK_COMMANDS}} in CLAUDE.md).
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Run checks
+        run: echo "Configure the project's check commands here" && exit 1
+
+  review:
+    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'claude/') }}
+    needs: [check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Trim skills to the CI set
+        run: |
+          keep=" bmad-agent-dev bmad-build bmad-qa-generate-e2e-tests bmad-code-review "
+          for dir in .claude/skills/*/; do
+            name=$(basename "$dir")
+            case "$keep" in *" $name "*) continue ;; esac
+            git ls-files -z "$dir" | xargs -0 -r git update-index --skip-worktree
+            rm -rf "$dir"
+          done
+
+      - uses: anthropics/claude-code-action@v1
+        id: claude
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # PR's are being opened by claude[bot]; without this the action will refuse the run.
+          allowed_bots: "claude,github-actions"
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are an independent code reviewer. You did NOT write this change; be critical and concrete.
+            Do not change any files. Read CLAUDE.md for the project rules.
+
+            1. Collect diff and description with `gh pr view` and `gh pr diff`; read the associated issue.
+            2. Use the review lenses of the bmad-code-review skill (blind hunter, edge cases, acceptance auditor) if they are available. 
+               If not, review yourself on the points below. Report one combined result and do not ask questions.
+            3. Check whether the change meets the issue's acceptance criteria and stays in scope.
+               Check the quality of the tests: do they really test the behaviour, and was test-first followed?
+               Check that the diff is small and has no unrelated changes, and that no protected path is touched.
+               Check the project-specific rules in CLAUDE.md and docs/adr/.
+            4. Post exactly one review with gh pr comment, starting with the line <!-- claude-review -->, with the headings "Blocking" and "Suggestions" 
+               (file:line, what is wrong, proposed fix). No filler praise. If there are no blocking points, say so explicitly.
+            5. Loop protection: use gh pr view --json comments to count how many comments contain <!-- claude-review --> (including your new one).
+               If the count is 1 and there are blocking points, end your comment with the line @claude please fix the blocking findings above. 
+               If the count is 2 or more, do NOT mention @claude; ask the maintainer to take a look.
+          claude_args: |
+            --model claude-sonnet-5-5
+            --max-turns 20
+            --allowedTools "Read,Grep,Glob,Skill,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git diff:*),Bash(git log:*)"
+
+      - name: Telemetry
+        id: telemetry
+        if: always()
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+          MAX_COST_USD: ${{ vars.MAX_COST_USD_REVIEW || '1' }}
+        run: node scripts/telemetry.mjs "${EXECUTION_FILE:-$RUNNER_TEMP/claude-execution-output.json}" "review:claude-sonnet-5-5"
+
+      - name: Report budget overrun
+        if: always() && steps.telemetry.outputs.over_budget == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body \
+            "Review stopped: cost exceeded the review budget. See the step summary of run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+
+      - name: Upload telemetry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-review-${{ github.run_id }}
+          path: telemetry.jsonl
+          retention-days: 30
+          if-no-files-found: ignore

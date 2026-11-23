@@ -1,0 +1,107 @@
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    env:
+      # Hard cap per run (ADR 0003); tune after the pilot.
+      MAX_COST_USD: ${{ vars.MAX_COST_USD_DEV || '5' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Only the skill names and descriptions end up in the system prompt, but every skill costs a line.
+      # skip-worktree keeps the deletions out of anything the agent stages.
+      - name: Trim skills to the CI set
+        run: |
+          keep=" bmad-agent-dev bmad-build bmad-qa-generate-e2e-tests bmad-code-review "
+          for dir in .claude/skills/*/; do
+            name=$(basename "$dir")
+            case "$keep" in *" $name "*) continue ;; esac
+            git ls-files -z "$dir" | xargs -0 -r git update-index --skip-worktree
+            rm -rf "$dir"
+          done
+
+      # Model choice per issue (ADR 0002, ADR 0007). Label `dev:deepseek` is opt-in and still a pilot.
+      - name: Select model
+        id: model
+        env:
+          LABELS: ${{ toJSON(github.event.issue.labels.*.name) }} ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          DEV_MODEL: ${{ vars.DEV_MODEL || 'claude-opus-5-5' }}
+          DEEPSEEK_MODEL: ${{ vars.DEEPSEEK_MODEL || 'deepseek-v4-pro' }}
+          DEEPSEEK_BASE_URL: ${{ vars.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/anthropic' }}
+        run: |
+          if echo "$LABELS" | grep -q '"dev:deepseek"'; then
+            echo "model=$DEEPSEEK_MODEL" >> "$GITHUB_OUTPUT"
+            echo "provider=deepseek" >> "$GITHUB_OUTPUT"
+            # Undocumented for claude-code-action; verify in the pilot (ADR 0007).
+            echo "ANTHROPIC_BASE_URL=$DEEPSEEK_BASE_URL" >> "$GITHUB_ENV"
+          else
+            echo "model=$DEV_MODEL" >> "$GITHUB_OUTPUT"
+            echo "provider=anthropic" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: anthropics/claude-code-action@v1
+        id: claude
+        with:
+          anthropic_api_key: ${{ steps.model.outputs.provider == 'deepseek' && secrets.DEEPSEEK_API_KEY || secrets.ANTHROPIC_API_KEY }}
+          # The review job (ci.yml) posts an @claude mention for one automated fix round.
+          allowed_bots: "claude"
+          claude_args: |
+            --agent claude-dev
+            --model ${{ steps.model.outputs.model }}
+            --max-turns 40
+            --allowedTools "Bash(gh issue create:*),Bash(gh label create:*),Bash(gh label list:*),Bash(gh pr create:*),Bash(gh issue edit:*),Bash(gh pr edit:*),Bash(npx:*),Bash(node:*),Bash(npm:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh issue view:*),Bash(gh issue comment:*)"
+
+      - name: Telemetry
+        id: telemetry
+        if: always()
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: node scripts/telemetry.mjs "${EXECUTION_FILE:-$RUNNER_TEMP/claude-execution-output.json}" "claude-dev:${{ steps.model.outputs.model }}"
+
+      - name: Report budget overrun
+        if: always() && steps.telemetry.outputs.over_budget == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body \
+            "Run stopped: cost exceeded the budget of $MAX_COST_USD USD. See the step summary of run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+
+      - name: Upload telemetry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-claude-${{ github.run_id }}
+          path: |
+            telemetry.jsonl
+            ${{ runner.temp }}/claude-execution-output.json
+
+          retention-days: 30
+          if-no-files-found: ignore
