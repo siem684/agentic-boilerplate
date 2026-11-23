@@ -5,7 +5,7 @@
     "agentic": {
       "owner": "template",
       "sync": true,
-      "description": "Owned by this template. sync.mjs may overwrite these paths in a spawned project.",
+      "description": "Owned by this template. sync.mjs may overwrite these paths in a spawned project. Exceptions: ci.yml is seeded (init fills in the project's check command) and template-ci.yml exists only in the template.",
       "paths": [
         ".claude/agents/**",
         ".claude/hooks/**",
@@ -15,6 +15,10 @@
         "scripts/**",
         "docs/agentic/**",
         "layers.json"
+      ],
+      "exclude": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/template-ci.yml"
       ]
     },
     "vendored": {
@@ -48,9 +52,18 @@
           "README.md",
           ".github/CODEOWNERS",
           ".gitignore",
-          "vendor.json"
+          "vendor.json",
+          ".github/workflows/ci.yml"
         ]
       }
+    },
+    "template-only": {
+      "owner": "template",
+      "sync": false,
+      "description": "Exists only in the template repository. init.mjs deletes these in a spawned project; sync never adds them.",
+      "paths": [
+        ".github/workflows/template-ci.yml"
+      ]
     }
   }
 }

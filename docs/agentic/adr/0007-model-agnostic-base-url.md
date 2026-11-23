@@ -8,6 +8,9 @@ Non-Claude models need an Anthropic-compatible endpoint. DeepSeek offers `https:
 ## Decision
 Claude is the default. The label `dev:deepseek` on an issue makes a first step in `claude.yml` override the model and `ANTHROPIC_BASE_URL` (from `vars.DEEPSEEK_BASE_URL`, key in a separate secret). Only the main session is switchable; subagents and review stay on Claude.
 
+## Key handling
+The provider decides the key, and there is no fallback between them. With `dev:deepseek` and no `DEEPSEEK_API_KEY` secret the job fails before anything is configured; it never sends `ANTHROPIC_API_KEY` to the DeepSeek endpoint. Any unknown provider resolves to an empty key.
+
 ## Consequences
 - If `env:` does not work in the pilot, fall back to a step that runs `claude -p` headless.
 - Tool use, subagents and caching may behave differently; telemetry cost is computed per model.

@@ -5,7 +5,7 @@ const LOGIN = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/; // GitHub login: no leading/tr
 const TEAM = /^[A-Za-z0-9._-]+$/;
 
 // Returns a list of problems (empty when everything is fine).
-export function validateInputs({ PROJECT_NAME: name, PROJECT_DESCRIPTION: desc, OWNER: owner }) {
+export function validateInputs({ PROJECT_NAME: name, PROJECT_DESCRIPTION: desc, OWNER: owner, CHECK_COMMANDS: check }) {
   const errors = [];
   const line = (flag, v, max) => {
     if (!v?.trim()) errors.push(`${flag}: must not be blank`);
@@ -15,6 +15,7 @@ export function validateInputs({ PROJECT_NAME: name, PROJECT_DESCRIPTION: desc, 
   };
   line("--name", name, 100);
   line("--description", desc, 300);
+  line("--check", check, 300); // lands in CLAUDE.md and ci.yml: a newline there would inject workflow YAML
 
   if (owner === "@me") {
     errors.push("--owner: use your real GitHub handle, not @me (GitHub does not expand it in CODEOWNERS)");

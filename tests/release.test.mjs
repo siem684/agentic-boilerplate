@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -40,8 +40,17 @@ function setup(changelog = GOOD, { commit = true } = {}) {
   }
   return root;
 }
+// Isolate from the developer's environment: no inherited GIT_* variables, and git must not
+// look for a repository above the temp directory.
+function cleanEnv(root, extra = {}) {
+  const env = { ...process.env };
+  for (const k of Object.keys(env)) {
+    if (/^GIT_(DIR|WORK_TREE|INDEX_FILE|CEILING_DIRECTORIES)$/i.test(k)) delete env[k];
+  }
+  return { ...env, GIT_CEILING_DIRECTORIES: dirname(root), ...extra };
+}
 const run = (root, ...args) =>
-  spawnSync(process.execPath, [SCRIPT, "--root", root, ...args], { encoding: "utf8" });
+  spawnSync(process.execPath, [SCRIPT, "--root", root, ...args], { encoding: "utf8", env: cleanEnv(root) });
 const tags = (root) => git(root, "tag", "--list").trim();
 
 test("creates an annotated tag v<version> when the changelog entry is complete", () => {
@@ -124,14 +133,34 @@ test("fails clearly outside a git repository", () => {
   assert.doesNotMatch(r.stderr, /TypeError/);
 });
 
+// One PATH key only: Windows env names are case-insensitive, duplicates behave unpredictably.
+function withoutPath(env, value) {
+  const out = Object.fromEntries(Object.entries(env).filter(([k]) => k.toLowerCase() !== "path"));
+  return { ...out, PATH: value };
+}
+
 test("fails clearly when git cannot be run", () => {
   const root = setup();
   const empty = mkdtempSync(join(tmpdir(), "release-nopath-"));
   const r = spawnSync(process.execPath, [SCRIPT, "--root", root, "0.1.0"], {
     encoding: "utf8",
-    env: { ...process.env, PATH: empty, Path: empty },
+    env: withoutPath(cleanEnv(root), empty),
   });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /could not run git/);
   assert.doesNotMatch(r.stderr, /TypeError/);
+});
+
+test("refuses when --root is a subdirectory of the repository", () => {
+  const root = setup();
+  const sub = join(root, "sub");
+  mkdirSync(sub);
+  writeFileSync(join(sub, "CHANGELOG.md"), GOOD);
+  const r = spawnSync(process.execPath, [SCRIPT, "--root", sub, "0.1.0"], {
+    encoding: "utf8",
+    env: cleanEnv(root), // ceiling above the repo, so git can find it from the subdirectory
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /top level/);
+  assert.equal(tags(root), "");
 });

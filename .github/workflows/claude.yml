@@ -25,27 +25,18 @@ jobs:
       issues: write
       id-token: write
     env:
-      # Hard cap per run (ADR 0003); tune after the pilot.
+      # Post-hoc cost alert per run (ADR 0003)
       MAX_COST_USD: ${{ vars.MAX_COST_USD_DEV || '5' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
 
-      # Only the skill names and descriptions end up in the system prompt, but every skill costs a line.
-      # skip-worktree keeps the deletions out of anything the agent stages.
       - name: Trim skills to the CI set
-        run: |
-          keep=" bmad-agent-dev bmad-build bmad-qa-generate-e2e-tests bmad-code-review "
-          for dir in .claude/skills/*/; do
-            name=$(basename "$dir")
-            case "$keep" in *" $name "*) continue ;; esac
-            git ls-files -z "$dir" | xargs -0 -r git update-index --skip-worktree
-            rm -rf "$dir"
-          done
+        run: node scripts/trim-skills.mjs bmad-agent-dev bmad-build bmad-qa-generate-e2e-tests bmad-code-review
 
       # Model choice per issue (ADR 0002, ADR 0007). Label `dev:deepseek` is opt-in and still a pilot.
       - name: Select model
@@ -55,8 +46,13 @@ jobs:
           DEV_MODEL: ${{ vars.DEV_MODEL || 'claude-opus-5-5' }}
           DEEPSEEK_MODEL: ${{ vars.DEEPSEEK_MODEL || 'deepseek-v4-pro' }}
           DEEPSEEK_BASE_URL: ${{ vars.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/anthropic' }}
+          HAS_DEEPSEEK_KEY: ${{ secrets.DEEPSEEK_API_KEY != '' }}
         run: |
           if echo "$LABELS" | grep -q '"dev:deepseek"'; then
+            if [ "$HAS_DEEPSEEK_KEY" != "true" ]; then
+              echo "::error::Label dev:deepseek is set but the DEEPSEEK_API_KEY secret is missing. Refusing to fall back to ANTHROPIC_API_KEY."
+              exit 1
+            fi
             echo "model=$DEEPSEEK_MODEL" >> "$GITHUB_OUTPUT"
             echo "provider=deepseek" >> "$GITHUB_OUTPUT"
             # Undocumented for claude-code-action; verify in the pilot (ADR 0007).
@@ -66,10 +62,10 @@ jobs:
             echo "provider=anthropic" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1
         id: claude
         with:
-          anthropic_api_key: ${{ steps.model.outputs.provider == 'deepseek' && secrets.DEEPSEEK_API_KEY || secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ steps.model.outputs.provider == 'deepseek' && secrets.DEEPSEEK_API_KEY || steps.model.outputs.provider == 'anthropic' && secrets.ANTHROPIC_API_KEY || '' }}
           # The review job (ci.yml) posts an @claude mention for one automated fix round.
           allowed_bots: "claude"
           claude_args: |
@@ -92,11 +88,11 @@ jobs:
           NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
         run: |
           gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body \
-            "Run stopped: cost exceeded the budget of $MAX_COST_USD USD. See the step summary of run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+            "Run cost exceeded the budget of $MAX_COST_USD USD. See the step summary of run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
 
       - name: Upload telemetry
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: telemetry-claude-${{ github.run_id }}
           path: |

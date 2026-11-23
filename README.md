@@ -2,11 +2,11 @@
 
 Template for guardrailed, agentic software projects: Claude Code agents, BMAD, graphify, protected paths, budget-capped CI, and documented decisions.
 
-**Status: planning.** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). Nothing is usable yet.
+**Status: under construction (milestones 1-5 of 9 built; not yet tagged or public).** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). Staleness checks, sync and the full documentation are still to come.
 
 ## Spawning a new project
 
-1. Create a repo from this template (`gh repo create <name> --template siem684/agentic-boilerplate`).
+1. Create a repo from this template (`gh repo create <name> --template <owner>/agentic-boilerplate`).
 2. Fill in the placeholders:
    `node scripts/init.mjs --name "My App" --description "One line." --owner @your-github-username --check "npm test"`
    (rewrites `CLAUDE.md`, `.github/CODEOWNERS` and `.github/workflows/ci.yml`; safe to re-run).
