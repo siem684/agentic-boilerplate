@@ -36,11 +36,11 @@ Every file belongs to one of: **agentic layer** (owned by the template, synced),
 - `.claude/` agents (triage, qa-tester, fixer, dev orchestrator), hooks (protect-paths), project `settings.json` with a permission baseline stricter than a personal one, declared plugins (superpowers) and marketplaces.
 - `.github/` workflows (agent runner, CI review, snapshot update, weekly staleness), CODEOWNERS template, issue templates.
 - `_bmad/` and BMAD skills (vendored), graphify skill (vendored, my call), `CLAUDE.md` in English with the `/graphify` trigger moved in from the global file.
-- `scripts/`: `doctor.mjs`, `vendor.mjs`, `staleness.mjs`, `sync.mjs`, `release.mjs`, telemetry.
+- `scripts/`: `init.mjs`, `check.mjs`, `vendor.mjs`, `staleness.mjs`, `sync.mjs`, `release.mjs`, telemetry.
 - `docs/`: README, architecture of the agentic setup, per-choice ADRs, how-to guides, fork guide, security model, proven-vs-pilot register.
 
 ### Spawning
-README documents: click "Use this template" (or `gh repo create --template`), run `node scripts/doctor.mjs init` to rename placeholders, set CODEOWNERS, and set secrets/variables (`ANTHROPIC_API_KEY`, `DEV_MODEL`, `MAX_COST_USD_DEV`). `doctor` verifies prerequisites and reports what is missing.
+README documents: click "Use this template" (or `gh repo create --template`), run `node scripts/init.mjs` to rename placeholders, set CODEOWNERS, and set secrets/variables (`ANTHROPIC_API_KEY`, `DEV_MODEL`, `MAX_COST_USD_DEV`). `node scripts/check.mjs` (read-only) verifies prerequisites and reports what is missing.
 
 ### Global-config gaps covered
 graphify vendored; `/graphify` rule moved into project `CLAUDE.md`; baseline denies/allows shipped in project settings; superpowers declared in `enabledPlugins` + `extraKnownMarketplaces`; model/effort set explicitly; personal items (wbso, ssh deploy, credentials) excluded.
@@ -49,7 +49,7 @@ graphify vendored; `/graphify` rule moved into project `CLAUDE.md`; baseline den
 - Template: SemVer, `CHANGELOG.md` (Keep a Changelog) grouped by layer with an **Action required** line, GitHub Releases, git tags. Bump rule recorded in an ADR (major: guardrails/permission/workflow meaning; minor: new agent/skill/script; patch: fixes/docs). `release.mjs` refuses to tag without a changelog entry.
 - Spawned projects record `boilerplate.lock` (template version + commit) and `vendor.json` (pinned vendored versions, sources, owned paths, checksums).
 - `staleness.mjs` is read-only: compares pinned vs. latest for BMAD, graphify, superpowers pin and the template; prints component, current, latest, and the changes between (release notes, or a compare link when upstream has none). Cached, fails silently offline, uses Node fetch.
-- Surfaces: weekly scheduled workflow maintaining one deduplicated "Staleness report" issue (closes when current, never opens PRs); Claude Code SessionStart hook at most once a week; `doctor` on demand. The agent reports staleness but must not upgrade.
+- Surfaces: weekly scheduled workflow maintaining one deduplicated "Staleness report" issue (closes when current, never opens PRs); Claude Code SessionStart hook at most once a week; `check.mjs` on demand. The agent reports staleness but must not upgrade.
 - Upgrading is manual: `vendor.mjs update <name>` and `sync.mjs` run by a human, producing a normal PR. `vendor.mjs verify` flags local edits to vendored files; customisations go in `_bmad/custom`.
 
 ## Open items for the builder
@@ -63,7 +63,7 @@ graphify vendored; `/graphify` rule moved into project `CLAUDE.md`; baseline den
 1. **Skeleton:** repo layout, `layers.json`, English `CLAUDE.md`, README stub with spawn instructions. Strip project-specific content from the nissimo.nl copy.
 2. **Agentic layer port:** agents, hooks, settings baseline, workflows, telemetry, generalised ADRs.
 3. **Vendoring:** `vendor.json`, `vendor.mjs`, BMAD and graphify vendored and pinned.
-4. **Doctor and spawn flow:** `doctor.mjs init/check`, secrets checklist, test spawning a throwaway repo end to end.
+4. **Init, check and spawn flow:** `init.mjs`, `check.mjs`, secrets checklist, test spawning a throwaway repo end to end.
 5. **Versioning and release:** CHANGELOG, `release.mjs`, release ADR, first tag `v0.1.0`.
 6. **Staleness:** `staleness.mjs`, weekly workflow, SessionStart hook; test with a deliberately outdated pin.
 7. **Sync:** `sync.mjs` with dry-run; test against a spawned project.

@@ -1,4 +1,4 @@
-# Replace {{OWNER}} with your GitHub user or team (scripts/doctor.mjs init does this).
+# Replace {{OWNER}} with your GitHub user or team (scripts/init.mjs does this).
 /.github/        {{OWNER}}
 /.claude/        {{OWNER}}
 /docs/adr/       {{OWNER}}

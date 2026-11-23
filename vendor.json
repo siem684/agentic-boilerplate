@@ -1,0 +1,18 @@
+{
+  "$comment": "Pinned versions of external components. Not vendored as files: each project installs them with the command below. Checked by scripts/vendor.mjs verify. See docs/agentic/vendoring.md.",
+  "schemaVersion": 1,
+  "components": {
+    "bmad": {
+      "version": "6.12.0",
+      "source": { "type": "npm", "package": "bmad-method" },
+      "install": "npx bmad-method@6.12.0 install   (choose the claude-code IDE)",
+      "detect": { "file": "_bmad/_config/manifest.yaml", "pattern": "installation:\\s*\\n\\s*version:\\s*(\\S+)" }
+    },
+    "graphify": {
+      "version": "0.9.1",
+      "source": { "type": "pypi", "package": "graphifyy", "repo": "https://github.com/Graphify-Labs/graphify" },
+      "install": "uv tool install graphifyy==0.9.1 && graphify install --project   (or pipx instead of uv)",
+      "detect": { "file": ".claude/skills/graphify/.graphify_version", "pattern": "^\\s*(\\S+)" }
+    }
+  }
+}

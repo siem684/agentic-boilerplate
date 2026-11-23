@@ -1,5 +1,5 @@
 {
-  "$comment": "Single source of truth for file ownership. Read by sync.mjs, vendor.mjs, doctor.mjs and the docs. Paths are repo-relative globs. A path that matches no layer is treated as project-owned.",
+  "$comment": "Single source of truth for file ownership. Read by sync.mjs, vendor.mjs, check.mjs and the docs. Paths are repo-relative globs. A path that matches no layer is treated as project-owned.",
   "schemaVersion": 1,
   "layers": {
     "agentic": {
@@ -20,7 +20,7 @@
     "vendored": {
       "owner": "upstream",
       "sync": false,
-      "description": "Owned by an upstream project and pinned in vendor.json. Updated only with vendor.mjs, never edited in place. Customisations go in _bmad/custom.",
+      "description": "Owned by an upstream project. Not shipped by the template: installed per project at the version pinned in vendor.json (checked by vendor.mjs verify), never edited in place. Customisations go in _bmad/custom.",
       "paths": [
         "_bmad/**",
         ".claude/skills/bmad-*/**",
@@ -41,13 +41,16 @@
         "src/**",
         "tests/**"
       ],
-      "seeded": [
-        "CLAUDE.md",
-        "README.md",
-        ".github/CODEOWNERS",
-        ".gitignore"
-      ],
-      "seededComment": "Copied once at spawn time, then owned by the project. Sync never overwrites them."
+      "seeded": {
+        "description": "Copied once at spawn time, then owned by the project. Sync never overwrites them.",
+        "paths": [
+          "CLAUDE.md",
+          "README.md",
+          ".github/CODEOWNERS",
+          ".gitignore",
+          "vendor.json"
+        ]
+      }
     }
   }
 }
