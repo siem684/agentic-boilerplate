@@ -114,3 +114,24 @@ test("--dry-run validates but creates no tag", () => {
   assert.match(r.stdout, /would tag v0\.1\.0/);
   assert.equal(tags(root), "");
 });
+
+test("fails clearly outside a git repository", () => {
+  const root = mkdtempSync(join(tmpdir(), "release-nogit-"));
+  writeFileSync(join(root, "CHANGELOG.md"), GOOD);
+  const r = run(root, "0.1.0");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /not a git repository/);
+  assert.doesNotMatch(r.stderr, /TypeError/);
+});
+
+test("fails clearly when git cannot be run", () => {
+  const root = setup();
+  const empty = mkdtempSync(join(tmpdir(), "release-nopath-"));
+  const r = spawnSync(process.execPath, [SCRIPT, "--root", root, "0.1.0"], {
+    encoding: "utf8",
+    env: { ...process.env, PATH: empty, Path: empty },
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /could not run git/);
+  assert.doesNotMatch(r.stderr, /TypeError/);
+});

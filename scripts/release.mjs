@@ -21,7 +21,11 @@ function fail(msg) {
   console.error(`release: ${msg}`);
   process.exit(1);
 }
-const git = (...a) => spawnSync("git", a, { cwd: root, encoding: "utf8" });
+const git = (...a) => {
+  const r = spawnSync("git", a, { cwd: root, encoding: "utf8" });
+  if (r.error) fail(`could not run git (${r.error.code ?? r.error.message}); is it installed and on PATH?`);
+  return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+};
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
 if (!version || !SEMVER.test(version)) {
@@ -42,7 +46,10 @@ if (!/action required/i.test(body)) {
   fail(`the CHANGELOG.md entry for ${version} needs an "Action required" line (write "none" if so)`);
 }
 
-if (git("status", "--porcelain").stdout.trim()) fail("uncommitted changes; commit or stash first");
+if (git("rev-parse", "--git-dir").status !== 0) fail(`${root} is not a git repository`);
+const status = git("status", "--porcelain");
+if (status.status !== 0) fail(`git status failed: ${status.stderr.trim()}`);
+if (status.stdout.trim()) fail("uncommitted changes; commit or stash first");
 
 const tag = `v${version}`;
 if (git("rev-parse", "-q", "--verify", `refs/tags/${tag}`).status === 0) {
