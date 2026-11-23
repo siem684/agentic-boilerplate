@@ -1,0 +1,53 @@
+{
+  "$comment": "Single source of truth for file ownership. Read by sync.mjs, vendor.mjs, doctor.mjs and the docs. Paths are repo-relative globs. A path that matches no layer is treated as project-owned.",
+  "schemaVersion": 1,
+  "layers": {
+    "agentic": {
+      "owner": "template",
+      "sync": true,
+      "description": "Owned by this template. sync.mjs may overwrite these paths in a spawned project.",
+      "paths": [
+        ".claude/agents/**",
+        ".claude/hooks/**",
+        ".claude/settings.json",
+        ".github/workflows/**",
+        ".github/ISSUE_TEMPLATE/**",
+        "scripts/**",
+        "docs/agentic/**",
+        "layers.json"
+      ]
+    },
+    "vendored": {
+      "owner": "upstream",
+      "sync": false,
+      "description": "Owned by an upstream project and pinned in vendor.json. Updated only with vendor.mjs, never edited in place. Customisations go in _bmad/custom.",
+      "paths": [
+        "_bmad/**",
+        ".claude/skills/bmad-*/**",
+        ".claude/skills/graphify/**"
+      ],
+      "exclude": [
+        "_bmad/custom/**"
+      ]
+    },
+    "project": {
+      "owner": "project",
+      "sync": false,
+      "description": "Owned by the spawned project. Never touched by sync.",
+      "paths": [
+        "_bmad/custom/**",
+        "_bmad-output/**",
+        "docs/adr/**",
+        "src/**",
+        "tests/**"
+      ],
+      "seeded": [
+        "CLAUDE.md",
+        "README.md",
+        ".github/CODEOWNERS",
+        ".gitignore"
+      ],
+      "seededComment": "Copied once at spawn time, then owned by the project. Sync never overwrites them."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+.claude/settings.local.json
+
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+
+# Local knowledge-graph cache; commit graphify-out/ only if you decide to.
+graphify-out/cache/
