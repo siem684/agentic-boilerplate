@@ -47,6 +47,10 @@ if (!/action required/i.test(body)) {
 }
 
 if (git("rev-parse", "--git-dir").status !== 0) fail(`${root} is not a git repository`);
+const top = git("rev-parse", "--show-toplevel").stdout.trim();
+if (!top || resolve(top).toLowerCase() !== root.toLowerCase()) {
+  fail(`${root} is not the top level of its git repository (${top}); run from the repository root`);
+}
 const status = git("status", "--porcelain");
 if (status.status !== 0) fail(`git status failed: ${status.stderr.trim()}`);
 if (status.stdout.trim()) fail("uncommitted changes; commit or stash first");

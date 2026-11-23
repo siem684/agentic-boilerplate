@@ -6,6 +6,15 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ## [Unreleased]
 
+### Agentic layer
+- `ci.yml` is now seeded (init fills in `--check`) and no longer synced; `template-ci.yml` runs the template's own tests and is deleted by `init.mjs` in spawned projects.
+- Review job: fork PRs are skipped, the fix-round count is computed in a step, the model is `vars.REVIEW_MODEL`.
+- Actions pinned to commit SHAs; the skills trim is the shared `scripts/trim-skills.mjs`.
+- `dev:deepseek` can no longer fall back to `ANTHROPIC_API_KEY` (ADR 0007).
+- `init.mjs` validates `--check`; `release.mjs` requires the repository root; `telemetry.mjs` tolerates a partial execution file.
+
+**Action required:** replace your `.github/workflows/` files with the template's, then re-apply your check command to `ci.yml`.
+
 ## [0.1.0] - 2026-11-23
 
 First release.

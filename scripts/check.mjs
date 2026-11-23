@@ -59,6 +59,9 @@ for (const s of SECRETS) {
   if (state === "MISSING") blocking++;
   console.log(`  ${state.padEnd(16)} ${s.kind.padEnd(8)} ${s.name}  ${s.required ? "required" : "optional"}: ${s.note}`);
 }
+if (blocking && sets?.secret && SECRETS.some((s) => s.required && !sets[s.kind]?.has(s.name))) {
+  console.log("  note: `gh` lists repository-level entries only. A secret shared from the organisation is not shown; if it is set there, MISSING is a false alarm.");
+}
 if (!sets?.secret) console.log("  (could not query GitHub; set these with `gh secret set` / `gh variable set`)");
 
 console.log(blocking ? `\n${blocking} blocking problem(s).` : "\nReady.");

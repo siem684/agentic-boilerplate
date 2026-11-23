@@ -18,7 +18,14 @@ if (!file || !existsSync(file)) {
   process.exit(0);
 }
 
-const raw = JSON.parse(readFileSync(file, 'utf8'));
+let raw;
+try {
+  raw = JSON.parse(readFileSync(file, 'utf8'));
+} catch (e) {
+  // A cancelled run can leave a partial file; do not fail an otherwise successful job.
+  console.log(`::warning::Could not parse ${file} for job ${job} (${e.message}); telemetry skipped.`);
+  process.exit(0);
+}
 const messages = Array.isArray(raw) ? raw : [raw];
 const result = [...messages].reverse().find((m) => m?.type === 'result') ?? {};
 

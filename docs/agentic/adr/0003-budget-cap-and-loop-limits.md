@@ -4,10 +4,10 @@
 
 ## Decision
 - Every job sets `--max-turns` and `timeout-minutes`.
-- A telemetry step compares cost with the repository variable `MAX_COST_USD_DEV`; on overrun the job fails and posts a summary comment.
+- A telemetry step compares cost with the repository variable `MAX_COST_USD_DEV` after the run has finished; on overrun the job fails and posts a summary comment. This is an alert, not a hard stop: it cannot interrupt spending, and `0` disables it. The hard bounds are `--max-turns` and `timeout-minutes`.
 - The fix loop runs at most 2 rounds, then stops with a status comment.
 - The automated review gets at most one fix round.
 
 ## Consequences
-- Worst-case cost per issue is bounded.
+- Worst-case cost per issue is bounded by turns and time; the cost variable only reports overruns.
 - Caps are tuned from telemetry in each project.

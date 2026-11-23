@@ -8,9 +8,9 @@
 // also looked up with `gh api` (a warning if that is not possible).
 // Options: --root <dir> (default: current directory); --offline skips the `gh` lookup.
 // Afterwards run `node scripts/check.mjs` to see what is still missing.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { PLACEHOLDER_FILES } from "./placeholders.mjs";
+import { PLACEHOLDER_FILES, TEMPLATE_ONLY_FILES } from "./placeholders.mjs";
 import { validateInputs, ownerExists } from "./validate.mjs";
 
 const args = process.argv.slice(2);
@@ -57,6 +57,11 @@ for (const f of PLACEHOLDER_FILES.filter((f) => existsSync(join(root, f)))) {
 for (const [f, text] of out) {
   writeFileSync(join(root, f), text);
   console.log(`updated ${f}`);
+}
+// Files that only make sense in the template repository itself.
+for (const f of TEMPLATE_ONLY_FILES.filter((f) => existsSync(join(root, f)))) {
+  rmSync(join(root, f));
+  console.log(`removed ${f}`);
 }
 if (!out.length) console.log("nothing to do: no placeholders left");
 console.log("Next: node scripts/check.mjs");

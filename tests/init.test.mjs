@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -67,5 +67,35 @@ test("init fails with a clear message when a value is missing", () => {
   assert.equal(r.status, 1);
   assert.match(r.stderr, /--description/);
   assert.match(read(root, "CLAUDE.md"), /\{\{PROJECT_NAME\}\}/, "must not half-apply");
+  rmSync(root, { recursive: true });
+});
+
+test("init removes the template's own CI workflow from the spawned project", () => {
+  const root = spawned();
+  writeFileSync(join(root, ".github/workflows/template-ci.yml"), "name: Template CI\n");
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(existsSync(join(root, ".github/workflows/template-ci.yml")), false);
+  assert.match(r.stdout, /removed .github\/workflows\/template-ci\.yml/);
+  rmSync(root, { recursive: true });
+});
+
+test("init still succeeds when there is no template-ci.yml (re-run)", () => {
+  const root = spawned();
+  assert.equal(run(root, ...INIT).status, 0);
+  assert.equal(run(root, ...INIT).status, 0);
+  rmSync(root, { recursive: true });
+});
+
+// Guard against the real ci.yml silently ignoring --check (it used to hard-code `exit 1`).
+// Only meaningful in the template itself; skipped once a project has been initialised.
+const REAL_CI = fileURLToPath(new URL("../.github/workflows/ci.yml", import.meta.url));
+test("the shipped ci.yml runs the --check command", { skip: !readFileSync(REAL_CI, "utf8").includes("{{CHECK_COMMANDS}}") }, () => {
+  const root = spawned();
+  writeFileSync(join(root, ".github/workflows/ci.yml"), readFileSync(REAL_CI, "utf8"));
+  assert.equal(run(root, ...INIT).status, 0);
+  const ci = read(root, ".github/workflows/ci.yml");
+  assert.match(ci, /run: \|\r?\n\s+npm test\r?\n/);
+  assert.doesNotMatch(ci, /exit 1/);
   rmSync(root, { recursive: true });
 });
