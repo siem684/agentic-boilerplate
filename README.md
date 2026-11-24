@@ -2,7 +2,7 @@
 
 Template for guardrailed, agentic software projects: Claude Code agents, BMAD, graphify, protected paths, budget-capped CI, and documented decisions.
 
-**Status: under construction (milestones 1-6 of 9 built; v0.2.0 released, not yet public).** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). Sync and the full documentation are still to come.
+**Status: under construction (milestones 1-7 of 9 built; v0.2.0 released, not yet public).** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). The full documentation pass and going public are still to come.
 
 ## What you get
 
@@ -55,6 +55,21 @@ node scripts/staleness.mjs
 
 It is read-only and reports, per dependency, your version, the latest and where to read the changes: the template itself (changelog entries since the version in `boilerplate.lock`, with their "Action required" lines, and the agentic-layer files that changed), the pinned BMAD and graphify versions, and the GitHub Actions in your workflows. Exit code 0 means current, 1 something is outdated, 2 a check could not run. It uses `GH_TOKEN` (or `gh auth token`) for GitHub when available; without one GitHub allows 60 requests an hour, and a private template cannot be read. Model IDs are not checked.
 
+## Updating a project
+
+When `staleness.mjs` says the template is ahead, a human brings the agentic layer up to date with `sync.mjs`. It never runs on its own, and Claude cannot write some of the protected paths it touches anyway.
+
+```
+node scripts/sync.mjs                 # dry-run: what would be added, updated, deleted, or conflicts
+node scripts/sync.mjs --diff          # the same, with a unified diff per update and conflict
+node scripts/sync.mjs --apply         # write it (commit or stash your own changes first)
+node scripts/sync.mjs --apply --force # also take the template's version for conflicts
+```
+
+It only touches paths the agentic layer owns (see [layers.json](layers.json)) and compares three trees: the template at the version in `boilerplate.lock`, the template at the latest release (or `--to x.y.z`), and your project. A file you did not touch is updated; a file you changed that the template also changed is a **conflict**, which is reported and left alone. Files only your project has are never touched. `--apply` needs a git repository and stops if a file it would write, or `boilerplate.lock`, has uncommitted changes, so a bad run is one `git checkout` away. `boilerplate.lock` moves to the new version only when no conflict is left. Afterwards review `git diff`, run your check and open a pull request. Read the changelog entry's **Action required** line first. Exit code 0 means nothing to do or applied cleanly, 1 changes pending or conflicts left, 2 the run failed. It reads release tarballs from GitHub (token as for `staleness.mjs`); `--from` and `--base` use local template trees instead. Details: `node scripts/run.mjs help sync`.
+
+Keep your own tests in `tests/`, not in `tests/agentic/`: that directory holds the template's tests and is synced.
+
 ## Cost and usage report
 
 Every agent run in CI appends one line to `telemetry.jsonl` and uploads it as a `telemetry-*` artifact (30 days). To see what the runs cost over time, run:
@@ -69,7 +84,7 @@ It is read-only and prints runs, cost (total, average, maximum), turns, tokens, 
 
 ## Working on the template itself
 
-The template's scripts have tests in `tests/`. Run them with Node 22 or later, using the glob form (the same as `template-ci.yml`):
+The template's scripts have tests in `tests/agentic/` (the synced ones) and `tests/`. Run them with Node 22 or later, using the glob form (the same as `template-ci.yml`):
 
 ```
 node --test "tests/**/*.test.mjs"
@@ -83,8 +98,8 @@ Every file belongs to one layer, listed in [layers.json](layers.json):
 
 | Layer                                                                                                | Owner                                                                                                         | Synced to spawned projects             |
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| agentic (`.claude/agents`, hooks, `settings.json`, `.github/workflows`, `scripts/`, `docs/agentic/`) | this template                                                                                                 | yes, by a human running `sync.mjs`     |
+| agentic (`.claude/agents`, hooks, `settings.json`, `.github/workflows`, `scripts/`, `tests/agentic/`, `docs/agentic/`) | this template                                                                                                 | yes, by a human running `sync.mjs`     |
 | vendored (`_bmad/`, `bmad-*` and `graphify` skills)                                                  | upstream, version pinned in `vendor.json`, installed per project (see [vendoring](docs/agentic/vendoring.md)) | no, `vendor.mjs verify` checks the pin |
-| project (`src/`, `tests/`, `docs/adr/`, `_bmad/custom`, seeded `CLAUDE.md`/`README.md`)              | the spawned project                                                                                           | never                                  |
+| project (`src/`, `tests/` except `tests/agentic/`, `docs/adr/`, `_bmad/custom`, seeded `CLAUDE.md`/`README.md`)              | the spawned project                                                                                           | never                                  |
 
 `CLAUDE.md` contains `{{PLACEHOLDERS}}` that `init.mjs` fills in. It also deletes the files that are about the template itself (the `template-only` layer in `layers.json`: the template's CI, changelog, design docs and release script). See [ADR 0009](docs/agentic/adr/0009-template-files-in-spawned-projects.md).

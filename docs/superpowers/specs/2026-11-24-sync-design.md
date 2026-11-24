@@ -1,6 +1,6 @@
 # Sync (`scripts/sync.mjs`) and synced tests
 
-Status: approved, in progress. Milestone 7 of the [boilerplate design](2026-11-23-boilerplate-design.md).
+Status: built (unreleased). Milestone 7 of the [boilerplate design](2026-11-23-boilerplate-design.md).
 
 ## Intent
 A spawned project is a copy of the template at one moment. The template changes quickly (agents, hooks, workflows, scripts), and the owner needs a safe way to take those changes without overwriting what the project did on top of them. `sync.mjs` brings a project's **agentic layer** (see `layers.json`) up to a template release. A human runs it and reviews the result as a normal PR ([ADR 0010](../../agentic/adr/0010-staleness-is-manual.md): nothing runs on a schedule, and Claude cannot write the protected `.claude/` and `.github/workflows/` paths anyway).
