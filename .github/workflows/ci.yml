@@ -17,6 +17,7 @@ concurrency:
 jobs:
   # Replace the steps below with the project's checks in CLAUDE.md.
   check:
+    if: ${{ github.event.repository.is_template != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
