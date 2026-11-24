@@ -1,6 +1,6 @@
 # Agentic boilerplate: design and plan
 
-Status: draft, awaiting approval. Nothing beyond this document and a README stub is built yet.
+Status: approved and in progress. Milestones 1-5 are built and v0.1.0 is released; milestones 6-9 (staleness, sync, documentation pass, go public) are still to do.
 
 ## Intent
 Extract the agentic development setup proven in the nissimo.nl repo (Claude Code agents, BMAD, graphify, guardrails, CI) into a reusable template. New projects are spawned from it. Other developers can fork it, and they will only trust it if every choice is explained. The setup will change quickly, so staying current is a first-class feature.
