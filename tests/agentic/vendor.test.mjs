@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const SCRIPT = fileURLToPath(new URL("../scripts/vendor.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("../../scripts/vendor.mjs", import.meta.url));
 
 function setup(installedText) {
   const root = mkdtempSync(join(tmpdir(), "vendor-test-"));

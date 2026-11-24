@@ -1,6 +1,6 @@
 # Agentic boilerplate: design and plan
 
-Status: approved and in progress. Milestones 1-6 are built and v0.2.0 is released (v0.1.0 was the first release); milestones 7-9 (sync, documentation pass, go public) are still to do. Two additions beyond the original plan shipped in v0.2.0: `run.mjs` (command index and dispatcher, see [its design](2026-11-24-run-dispatcher-design.md)) and `report.mjs` (cost and usage report over many runs).
+Status: approved and in progress. Milestones 1-7 are built and v0.2.0 is released (v0.1.0 was the first release); milestone 7 (sync, see [its design](2026-11-24-sync-design.md)) is built but not yet released; milestones 8-9 (documentation pass, go public) are still to do. Two additions beyond the original plan shipped in v0.2.0: `run.mjs` (command index and dispatcher, see [its design](2026-11-24-run-dispatcher-design.md)) and `report.mjs` (cost and usage report over many runs).
 
 ## Intent
 Extract the agentic development setup proven in the nissimo.nl repo (Claude Code agents, BMAD, graphify, guardrails, CI) into a reusable template. New projects are spawned from it. Other developers can fork it, and they will only trust it if every choice is explained. The setup will change quickly, so staying current is a first-class feature.
@@ -70,6 +70,6 @@ graphify vendored; `/graphify` rule moved into project `CLAUDE.md`; baseline den
 4. **Init, check and spawn flow:** `init.mjs`, `check.mjs`, secrets checklist, test spawning a throwaway repo end to end.
 5. **Versioning and release:** CHANGELOG, `release.mjs`, release ADR, first tag `v0.1.0`.
 6. **Staleness:** `template.json`, `boilerplate.lock` and `staleness.mjs` (manual, see above); test with a deliberately outdated pin against a local stub server. No workflow or hook, so nothing in a protected path. Built together with `run.mjs` and `report.mjs` (v0.2.0).
-7. **Sync:** `sync.mjs` with dry-run; test against a spawned project. Also move the template's tests into a synced directory (for example `tests/agentic/**`) so they follow the scripts they cover; see the known gap in [ADR 0009](../../agentic/adr/0009-template-files-in-spawned-projects.md).
+7. **Sync (built, unreleased):** `sync.mjs` with dry-run; test against a spawned project. Also move the template's tests into a synced directory (for example `tests/agentic/**`) so they follow the scripts they cover; see the known gap in [ADR 0009](../../agentic/adr/0009-template-files-in-spawned-projects.md).
 8. **Documentation pass:** architecture, per-choice rationale, security model, fork guide, proven-vs-pilot register. Review as an outsider: can a new developer decide to trust it from the docs alone?
 9. **Go public:** license, secrets scan, then switch visibility deliberately.

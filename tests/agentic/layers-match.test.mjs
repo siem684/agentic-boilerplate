@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { matches, owns } from "../scripts/layers.mjs";
+import { matches, owns } from "../../scripts/layers.mjs";
 
 test("an exact path matches only itself", () => {
   assert.ok(matches("CHANGELOG.md", "CHANGELOG.md"));

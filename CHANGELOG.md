@@ -6,6 +6,12 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ## [Unreleased]
 
+### Agentic layer
+- New `scripts/sync.mjs`: brings a spawned project's agentic layer up to a template release. It is a dry-run unless you pass `--apply`. It compares the template at your `boilerplate.lock` version, the template at the target (the latest GitHub Release, or `--to`) and your project, per path of the agentic layer: files you did not touch are added, updated or deleted, files you changed that the template also changed are reported as conflicts and skipped (`--force` takes the template's version). Files only your project has are never touched. `--apply` needs a git repository and refuses when a file it would write, or `boilerplate.lock`, has uncommitted changes. The lock moves to the new version only when no conflict is left. `--diff` shows the changes, `--from`/`--base` use local template trees instead of release tarballs. Exit code 0 nothing to do or applied cleanly, 1 changes pending or conflicts left, 2 the run failed. New helpers `scripts/tar.mjs` (a minimal tar reader) and `scripts/sync-plan.mjs` (the decision table). Listed in `scripts/commands.json`. Tests in `tests/agentic/`.
+- The template's tests moved from `tests/` to `tests/agentic/`, a new agentic-layer path, so they are synced with the scripts they cover ([ADR 0009](docs/agentic/adr/0009-template-files-in-spawned-projects.md)). `tests/**` stays the project's, except `tests/agentic/**`.
+
+**Action required:** projects spawned from 0.1.0 or 0.2.0 delete their old copies of the moved tests after the first sync (`tests/init`, `check`, `validate`, `vendor`, `telemetry`, `trim-skills`, `protect-paths`, `layers`, `layers-match`, `staleness`, `report` and `run` `.test.mjs`); they are now in `tests/agentic/`. Put your own tests in `tests/`, not in `tests/agentic/`.
+
 ## [0.2.0] - 2026-11-24
 
 ### Agentic layer

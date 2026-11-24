@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { crc32, deflateRawSync } from "node:zlib";
 
-const SCRIPT = fileURLToPath(new URL("../scripts/report.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("../../scripts/report.mjs", import.meta.url));
 const execFileP = promisify(execFile);
 
 // ---- fixtures --------------------------------------------------------------------------

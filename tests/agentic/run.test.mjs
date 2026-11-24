@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const SCRIPTS = fileURLToPath(new URL("../scripts/", import.meta.url));
+const SCRIPTS = fileURLToPath(new URL("../../scripts/", import.meta.url));
 const SCRIPT = SCRIPTS + "run.mjs";
 const spec = JSON.parse(readFileSync(SCRIPTS + "commands.json", "utf8"));
 

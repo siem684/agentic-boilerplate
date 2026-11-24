@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const SCRIPT = fileURLToPath(new URL("../scripts/telemetry.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("../../scripts/telemetry.mjs", import.meta.url));
 
 function run(content, env = {}) {
   const dir = mkdtempSync(join(tmpdir(), "telemetry-test-"));

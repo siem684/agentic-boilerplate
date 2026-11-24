@@ -1,7 +1,7 @@
 {
   "$comment": "Single source of truth for `node scripts/run.mjs`: what each script is for, who runs it, its flags and exit codes. tests/run.test.mjs fails when a script in scripts/ has no entry here. `notCommands` are the dispatcher and the library modules. `templateOnly` entries are hidden when the script is absent (they are deleted in spawned projects).",
   "schemaVersion": 1,
-  "notCommands": ["run", "layers", "validate", "placeholders"],
+  "notCommands": ["run", "layers", "validate", "placeholders", "tar", "sync-plan"],
   "audiences": {
     "you": "Run by you",
     "automated": "Run by CI or hooks, not for manual use",
@@ -64,6 +64,25 @@
         { "code": 2, "meaning": "A check could not run (wins over 1)" }
       ],
       "example": "node scripts/staleness.mjs"
+    },
+    "sync": {
+      "summary": "Bring the agentic layer up to a template release: dry-run by default, --apply writes, conflicts are skipped",
+      "audience": "you",
+      "flags": [
+        { "flag": "--apply", "description": "Write the changes (default is a dry-run that writes nothing)" },
+        { "flag": "--force", "description": "Take the template's version for conflicts too" },
+        { "flag": "--diff", "description": "Show a unified diff for each update and conflict" },
+        { "flag": "--to <x.y.z>", "description": "Target version (default: the latest GitHub Release)" },
+        { "flag": "--from <dir>", "description": "Use a local template checkout as the new tree instead of a release tarball" },
+        { "flag": "--base <dir>", "description": "Use a local tree as the old tree instead of the tarball of your current version" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Nothing to do, or applied cleanly" },
+        { "code": 1, "meaning": "Changes pending in a dry-run, or conflicts remain" },
+        { "code": 2, "meaning": "The run failed (network, bad lock, dirty paths, not a git repository)" }
+      ],
+      "example": "node scripts/sync.mjs --diff"
     },
     "trim-skills": {
       "summary": "In CI, keep only the named skills under .claude/skills/",
