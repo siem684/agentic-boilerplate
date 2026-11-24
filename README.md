@@ -2,7 +2,7 @@
 
 Template for guardrailed, agentic software projects: Claude Code agents, BMAD, graphify, protected paths, budget-capped CI, and documented decisions.
 
-**Status: under construction (milestones 1-7 of 9 built; v0.2.0 released, not yet public).** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). The full documentation pass and going public are still to come.
+**Status: under construction (milestones 1-7 of 9 built; v0.2.0 released, not yet public).** The design is in `docs/superpowers/specs/2026-11-23-boilerplate-design.md` (template repository only). The full documentation pass and going public are still to come.
 
 ## What you get
 
@@ -47,7 +47,7 @@ The exit code of the script is the exit code of `run.mjs`. The list comes from [
 
 ## Checking for updates
 
-Nothing checks on a schedule ([ADR 0010](docs/agentic/adr/0010-staleness-is-manual.md)). When you want to know whether you are behind, run:
+Nothing checks on a schedule (ADR 0010, in `docs/template/adr/` of the template repository). When you want to know whether you are behind, run:
 
 ```
 node scripts/staleness.mjs
@@ -90,7 +90,7 @@ The template's scripts have tests in `tests/agentic/` (the synced ones) and `tes
 node --test "tests/**/*.test.mjs"
 ```
 
-A release is cut with `node scripts/release.mjs <x.y.z>` after bumping `template.json` and `CHANGELOG.md` ([ADR 0008](docs/agentic/adr/0008-versioning-and-release.md)); it only creates the tag and never pushes. `init.mjs` deletes the template-only files in a spawned project, so these instructions apply to the template repository.
+A release is cut with `node scripts/release.mjs <x.y.z>` after bumping `template.json` and `CHANGELOG.md` (ADR 0008, in `docs/template/adr/` of the template repository); it only creates the tag and never pushes. `init.mjs` deletes the template-only files in a spawned project, so these instructions apply to the template repository.
 
 ## Layout and ownership
 
@@ -102,4 +102,4 @@ Every file belongs to one layer, listed in [layers.json](layers.json):
 | vendored (`_bmad/`, `bmad-*` and `graphify` skills)                                                  | upstream, version pinned in `vendor.json`, installed per project (see [vendoring](docs/agentic/vendoring.md)) | no, `vendor.mjs verify` checks the pin |
 | project (`src/`, `tests/` except `tests/agentic/`, `docs/adr/`, `_bmad/custom`, seeded `CLAUDE.md`/`README.md`)              | the spawned project                                                                                           | never                                  |
 
-`CLAUDE.md` contains `{{PLACEHOLDERS}}` that `init.mjs` fills in. It also deletes the files that are about the template itself (the `template-only` layer in `layers.json`: the template's CI, changelog, design docs and release script). See [ADR 0009](docs/agentic/adr/0009-template-files-in-spawned-projects.md).
+`CLAUDE.md` contains `{{PLACEHOLDERS}}` that `init.mjs` fills in. It also deletes the files that are about the template itself (the `template-only` layer in `layers.json`: the template's CI, changelog, design docs and release script). See ADR 0009 in `docs/template/adr/` of the template repository.
