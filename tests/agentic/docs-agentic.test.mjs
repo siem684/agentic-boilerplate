@@ -58,3 +58,12 @@ test("architecture.md names every agent and workflow", () => {
   assert.ok(agents.length >= 5);
   for (const name of [...agents, "claude.yml", "ci.yml"]) assert.ok(text.includes(name), `architecture.md does not mention ${name}`);
 });
+
+test("security-model.md states the spend model", () => {
+  assert.ok(existsSync(`${root}docs/agentic/security-model.md`), "docs/agentic/security-model.md is missing");
+  const text = read("docs/agentic/security-model.md");
+  for (const needle of ["allowed_non_write_users", "write access", "ANTHROPIC_API_KEY", "fork"]) {
+    assert.ok(text.includes(needle), `security-model.md does not mention ${needle}`);
+  }
+  assert.match(text, /^#{1,3} .*known gaps/im);
+});

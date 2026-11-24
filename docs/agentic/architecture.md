@@ -27,7 +27,7 @@ ci.yml  check job    runs the project's check command
 a human reads the PR and merges
 ```
 
-1. **Trigger.** `claude.yml` starts when an issue is opened or assigned, or a comment, review comment or review contains `@claude`. Who may trigger it is covered in the security model.
+1. **Trigger.** `claude.yml` starts when an issue is opened or assigned, or a comment, review comment or review contains `@claude`. Who may trigger it is covered in the [security model](security-model.md).
 2. **Setup.** It checks out the repository, trims the installed skills to the four the CI run needs (`scripts/trim-skills.mjs`), and chooses the model: `DEV_MODEL` (default `claude-opus-5-5`), or DeepSeek when the issue carries the label `dev:deepseek` ([ADR 0007](adr/0007-model-agnostic-base-url.md), pilot).
 3. **Work.** `claude-dev` follows the per-issue workflow in `CLAUDE.md` and delegates to subagents. It orchestrates because subagents cannot start subagents.
 4. **PR.** `claude-dev` pushes a branch `claude/issue-<nr>-...` and opens the PR itself with `gh pr create`. Its `--allowedTools` list contains no merge and no force-push command.
@@ -70,7 +70,7 @@ Each job ends with `scripts/telemetry.mjs`, which reads the action's execution f
 
 ## Guardrails
 
-`permissions.deny` in `.claude/settings.json` and the `protect-paths` hook keep agents out of `_bmad/`, `_bmad-output/`, `.claude/` and `.github/workflows/`; `CODEOWNERS` makes the owner the reviewer of those paths ([ADR 0004](adr/0004-protected-paths.md)). The limits of these controls are in the security model.
+`permissions.deny` in `.claude/settings.json` and the `protect-paths` hook keep agents out of `_bmad/`, `_bmad-output/`, `.claude/` and `.github/workflows/`; `CODEOWNERS` makes the owner the reviewer of those paths ([ADR 0004](adr/0004-protected-paths.md)). The limits of these controls are in the [security model](security-model.md).
 
 ## Layers and ownership
 
