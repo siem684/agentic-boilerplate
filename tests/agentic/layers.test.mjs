@@ -16,6 +16,10 @@ test("template-only layer lists everything that must not reach a spawned project
     "tests/release.test.mjs",
     "tests/agents.test.mjs",
     "template.json",
+    "docs/template/**",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "tests/docs.test.mjs",
   ]) {
     assert.ok(templateOnly.includes(p), `template-only should list ${p}`);
   }

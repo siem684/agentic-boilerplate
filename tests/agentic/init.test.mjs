@@ -195,3 +195,29 @@ test("the shipped ci.yml runs the --check command", { skip: !readFileSync(REAL_C
   assert.doesNotMatch(ci, /exit 1/);
   rmSync(root, { recursive: true });
 });
+
+test("init removes everything the real layers.json lists as template-only", () => {
+  const real = JSON.parse(readFileSync(fileURLToPath(new URL("../../layers.json", import.meta.url)), "utf8"));
+  const patterns = real.layers["template-only"].paths;
+  for (const p of ["docs/template/**", "CONTRIBUTING.md", "SECURITY.md"]) {
+    assert.ok(patterns.includes(p), `layers.json should list ${p} as template-only`);
+  }
+  const root = spawned();
+  writeFileSync(join(root, "layers.json"), JSON.stringify(real));
+  const made = patterns.map((p) => (p.endsWith("/**") ? `${p.slice(0, -3)}/x/y.md` : p));
+  for (const f of made) {
+    mkdirSync(join(root, f, ".."), { recursive: true });
+    const body = f === "template.json" ? JSON.stringify({ version: "0.2.0", repo: "acme/tpl" }) : "template only\n";
+    writeFileSync(join(root, f), body);
+  }
+  mkdirSync(join(root, "docs/adr"), { recursive: true });
+  writeFileSync(join(root, "docs/adr/0001-x.md"), "project adr\n");
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "scripts/init.mjs"), "// kept\n");
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 0, r.stderr);
+  for (const f of made) assert.ok(!existsSync(join(root, f)), `${f} should be removed`);
+  assert.ok(existsSync(join(root, "docs/adr/0001-x.md")));
+  assert.ok(existsSync(join(root, "scripts/init.mjs")));
+  rmSync(root, { recursive: true });
+});
