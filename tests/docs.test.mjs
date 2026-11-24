@@ -52,3 +52,13 @@ test("CONTRIBUTING.md, SECURITY.md and the fork guide exist and say what they mu
   assert.ok(security.includes("private vulnerability reporting"));
   assert.ok(resolved("SECURITY.md").includes("docs/agentic/security-model.md"));
 });
+
+test("README.md links the synced docs index and the status line is current", () => {
+  const links = resolved("README.md");
+  for (const f of ["docs/agentic/README.md", "docs/agentic/security-model.md", "docs/agentic/register.md"]) {
+    assert.ok(links.includes(f), `README.md does not link ${f}`);
+  }
+  const status = read("README.md").split("\n").find((l) => l.startsWith("**Status:"));
+  assert.ok(status, "README.md has no status line");
+  assert.ok(!status.includes("milestones 1-7"), "the status line is stale");
+});
