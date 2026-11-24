@@ -73,6 +73,12 @@ test("the template is MIT licensed, and init.mjs does not hand the licence to a 
   assert.ok(status.includes("MIT"), "the status line does not name the licence");
 });
 
+test("no synced document is still marked 'to confirm' (the owner confirmed the register before going public)", () => {
+  for (const f of markdownFiles(root, "docs/agentic")) {
+    assert.doesNotMatch(read(f), /to confirm/i, `${f} still has an item marked to confirm`);
+  }
+});
+
 test("README.md links the synced docs index and the status line is current", () => {
   const links = resolved("README.md");
   for (const f of ["docs/agentic/README.md", "docs/agentic/security-model.md", "docs/agentic/register.md"]) {
