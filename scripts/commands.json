@@ -65,6 +65,25 @@
       ],
       "example": "node scripts/staleness.mjs"
     },
+    "sync": {
+      "summary": "Bring the agentic layer up to a template release: dry-run by default, --apply writes, conflicts are skipped",
+      "audience": "you",
+      "flags": [
+        { "flag": "--apply", "description": "Write the changes (default is a dry-run that writes nothing)" },
+        { "flag": "--force", "description": "Take the template's version for conflicts too" },
+        { "flag": "--diff", "description": "Show a unified diff for each update and conflict" },
+        { "flag": "--to <x.y.z>", "description": "Target version (default: the latest GitHub Release)" },
+        { "flag": "--from <dir>", "description": "Use a local template checkout as the new tree instead of a release tarball" },
+        { "flag": "--base <dir>", "description": "Use a local tree as the old tree instead of the tarball of your current version" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Nothing to do, or applied cleanly" },
+        { "code": 1, "meaning": "Changes pending in a dry-run, or conflicts remain" },
+        { "code": 2, "meaning": "The run failed (network, bad lock, dirty paths, not a git repository)" }
+      ],
+      "example": "node scripts/sync.mjs --diff"
+    },
     "trim-skills": {
       "summary": "In CI, keep only the named skills under .claude/skills/",
       "audience": "automated",
