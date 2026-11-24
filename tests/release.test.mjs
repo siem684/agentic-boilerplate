@@ -25,7 +25,7 @@ function git(root, ...a) {
   return r.stdout;
 }
 
-function setup(changelog = GOOD, { commit = true } = {}) {
+function setup(changelog = GOOD, { commit = true, templateVersion = "0.1.0" } = {}) {
   const root = mkdtempSync(join(tmpdir(), "release-test-"));
   git(root, "init", "-q");
   git(root, "config", "user.email", "t@example.com");
@@ -33,6 +33,9 @@ function setup(changelog = GOOD, { commit = true } = {}) {
   git(root, "config", "commit.gpgsign", "false");
   git(root, "config", "tag.gpgsign", "false");
   if (changelog !== null) writeFileSync(join(root, "CHANGELOG.md"), changelog);
+  if (templateVersion !== null) {
+    writeFileSync(join(root, "template.json"), JSON.stringify({ version: templateVersion, repo: "acme/tpl" }));
+  }
   writeFileSync(join(root, "a.txt"), "a");
   if (commit) {
     git(root, "add", "-A");
@@ -97,6 +100,23 @@ test("refuses an empty entry", () => {
   const r = run(root, "0.1.0");
   assert.equal(r.status, 1);
   assert.match(r.stderr, /empty/);
+});
+
+test("refuses when template.json names another version than the release", () => {
+  const root = setup(GOOD, { templateVersion: "0.0.9" });
+  const r = run(root, "0.1.0");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /template\.json/);
+  assert.match(r.stderr, /0\.0\.9/);
+  assert.equal(tags(root), "");
+});
+
+test("refuses when template.json is missing", () => {
+  const root = setup(GOOD, { templateVersion: null });
+  const r = run(root, "0.1.0");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /template\.json/);
+  assert.equal(tags(root), "");
 });
 
 test("refuses when the working tree is dirty", () => {

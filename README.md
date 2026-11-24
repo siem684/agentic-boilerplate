@@ -2,7 +2,7 @@
 
 Template for guardrailed, agentic software projects: Claude Code agents, BMAD, graphify, protected paths, budget-capped CI, and documented decisions.
 
-**Status: under construction (milestones 1-5 of 9 built; not yet tagged or public).** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). Staleness checks, sync and the full documentation are still to come.
+**Status: under construction (milestones 1-6 of 9 built; v0.1.0 released, not yet public).** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). Sync and the full documentation are still to come.
 
 ## Spawning a new project
 
@@ -23,6 +23,16 @@ Template for guardrailed, agentic software projects: Claude Code agents, BMAD, g
 
 3. Install the pinned components that `node scripts/vendor.mjs verify` reports as missing.
 4. Run `node scripts/check.mjs`. It lists leftover placeholders, missing components, and the repository secrets and variables to set (`ANTHROPIC_API_KEY` is required; it queries them with `gh` when available, `--offline` skips that). Exit code 1 means something blocks use.
+
+## Checking for updates
+
+Nothing checks on a schedule ([ADR 0010](docs/agentic/adr/0010-staleness-is-manual.md)). When you want to know whether you are behind, run:
+
+```
+node scripts/staleness.mjs
+```
+
+It is read-only and reports, per dependency, your version, the latest and where to read the changes: the template itself (changelog entries since the version in `boilerplate.lock`, with their "Action required" lines, and the agentic-layer files that changed), the pinned BMAD and graphify versions, and the GitHub Actions in your workflows. Exit code 0 means current, 1 something is outdated, 2 a check could not run. It uses `GH_TOKEN` (or `gh auth token`) for GitHub when available; without one GitHub allows 60 requests an hour, and a private template cannot be read. Model IDs are not checked.
 
 ## Layout and ownership
 

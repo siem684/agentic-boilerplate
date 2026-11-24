@@ -5,8 +5,8 @@
 //   node scripts/release.mjs <x.y.z> [--dry-run]
 //
 // Refuses unless: the version is SemVer, CHANGELOG.md has a non-empty entry for it
-// that contains an "Action required" line, the working tree is clean, and the tag
-// does not exist yet. Options: --root <dir> (default: current directory)
+// that contains an "Action required" line, template.json carries the same version,
+// the working tree is clean, and the tag does not exist yet. Options: --root <dir> (default: current directory)
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -59,6 +59,12 @@ const tag = `v${version}`;
 if (git("rev-parse", "-q", "--verify", `refs/tags/${tag}`).status === 0) {
   fail(`tag ${tag} already exists`);
 }
+
+// template.json is hand-edited in the release PR; the tag is made on the commit that holds it.
+const templateFile = join(root, "template.json");
+if (!existsSync(templateFile)) fail("template.json not found (it records the template version for spawned projects)");
+const recorded = JSON.parse(readFileSync(templateFile, "utf8")).version;
+if (recorded !== version) fail(`template.json says version ${recorded}, not ${version}; update it in the release commit`);
 
 if (dryRun) {
   console.log(`would tag ${tag}`);

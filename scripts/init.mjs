@@ -66,6 +66,24 @@ if (!existsSync(layersFile)) {
     templateOnly.push([pattern, target, isDir]);
   }
 }
+// template.json (template-only) says which template version this copy is. Record it in
+// boilerplate.lock for staleness.mjs, once: a re-run keeps the lock, and sync updates it.
+const lockFile = join(root, "boilerplate.lock");
+let lock = null;
+const templateFile = join(root, "template.json");
+if (existsSync(templateFile)) {
+  try {
+    const t = JSON.parse(readFileSync(templateFile, "utf8"));
+    if (!/^\d+\.\d+\.\d+/.test(t.version ?? "")) throw new Error(`version "${t.version}" is not SemVer`);
+    if (!/^[\w.-]+\/[\w.-]+$/.test(t.repo ?? "")) throw new Error(`repo "${t.repo}" is not owner/name`);
+    if (!existsSync(lockFile)) lock = { based_on: t.version, repo: t.repo };
+  } catch (e) {
+    console.error(`template.json: ${e.message}`);
+    process.exit(1);
+  }
+} else if (!existsSync(lockFile)) {
+  console.warn("warning: template.json not found; boilerplate.lock was not written, so staleness.mjs cannot check the template");
+}
 const out = [];
 for (const f of PLACEHOLDER_FILES.filter((f) => existsSync(join(root, f)))) {
   const before = readFileSync(join(root, f), "utf8");
@@ -76,6 +94,10 @@ for (const f of PLACEHOLDER_FILES.filter((f) => existsSync(join(root, f)))) {
 for (const [f, text] of out) {
   writeFileSync(join(root, f), text);
   console.log(`updated ${f}`);
+}
+if (lock) {
+  writeFileSync(lockFile, JSON.stringify(lock, null, 2) + "\n");
+  console.log("wrote boilerplate.lock");
 }
 for (const [pattern, target, isDir] of templateOnly.filter(([, target]) => existsSync(target))) {
   rmSync(target, { recursive: isDir, force: true });
