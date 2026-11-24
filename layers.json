@@ -38,10 +38,11 @@
     "project": {
       "owner": "project",
       "sync": false,
-      "description": "Owned by the spawned project. Never touched by sync.",
+      "description": "Owned by the spawned project. Never touched by sync, except that sync updates boilerplate.lock (written by init.mjs) to the template version it synced to.",
       "paths": [
         "_bmad/custom/**",
         "_bmad-output/**",
+        "boilerplate.lock",
         "docs/adr/**",
         "src/**",
         "tests/**"
@@ -72,7 +73,8 @@
         "docs/superpowers/**",
         "scripts/release.mjs",
         "tests/release.test.mjs",
-        "tests/agents.test.mjs"
+        "tests/agents.test.mjs",
+        "template.json"
       ]
     }
   }

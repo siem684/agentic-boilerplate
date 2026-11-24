@@ -141,6 +141,48 @@ test("init warns and carries on when layers.json is missing", () => {
   rmSync(root, { recursive: true });
 });
 
+test("init records the template version in boilerplate.lock, then removes template.json", () => {
+  const root = spawned();
+  writeLayers(root, ["template.json"]);
+  writeFileSync(join(root, "template.json"), JSON.stringify({ version: "0.2.0", repo: "acme/tpl" }));
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(read(root, "boilerplate.lock")), { based_on: "0.2.0", repo: "acme/tpl" });
+  assert.equal(existsSync(join(root, "template.json")), false);
+  assert.match(r.stdout, /wrote boilerplate\.lock/);
+  rmSync(root, { recursive: true });
+});
+
+test("init keeps an existing boilerplate.lock on a re-run", () => {
+  const root = spawned();
+  writeLayers(root, ["template.json"]);
+  writeFileSync(join(root, "template.json"), JSON.stringify({ version: "0.2.0", repo: "acme/tpl" }));
+  assert.equal(run(root, ...INIT).status, 0);
+  writeFileSync(join(root, "boilerplate.lock"), JSON.stringify({ based_on: "0.5.0", repo: "acme/tpl" }));
+  assert.equal(run(root, ...INIT).status, 0);
+  assert.equal(JSON.parse(read(root, "boilerplate.lock")).based_on, "0.5.0");
+  rmSync(root, { recursive: true });
+});
+
+test("init warns and carries on when template.json is missing", () => {
+  const root = spawned();
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /template\.json/);
+  assert.equal(existsSync(join(root, "boilerplate.lock")), false);
+  rmSync(root, { recursive: true });
+});
+
+test("init refuses an invalid template.json and changes nothing", () => {
+  const root = spawned();
+  writeFileSync(join(root, "template.json"), JSON.stringify({ version: "latest", repo: "acme/tpl" }));
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /template\.json/);
+  assert.match(read(root, "CLAUDE.md"), /\{\{PROJECT_NAME\}\}/, "must not half-apply");
+  rmSync(root, { recursive: true });
+});
+
 // Guard against the real ci.yml silently ignoring --check (it used to hard-code `exit 1`).
 // Only meaningful in the template itself; skipped once a project has been initialised.
 const REAL_CI = fileURLToPath(new URL("../.github/workflows/ci.yml", import.meta.url));

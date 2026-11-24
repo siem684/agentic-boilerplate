@@ -29,6 +29,11 @@ test("claude-dev does not hard-code the base branch of the PR", () => {
   assert.doesNotMatch(text, /--base\b(?!`)/, "an explicit --base would override the default branch");
 });
 
+test("CLAUDE.md points at the manual staleness check and does not promise an issue nothing creates", () => {
+  assert.match(claudeMd, /scripts\/staleness\.mjs/);
+  assert.doesNotMatch(claudeMd, /staleness report issue/i);
+});
+
 test("claude-dev tells the agent that gh targets the default branch", () => {
   assert.match(agent("claude-dev"), /default branch/i);
 });

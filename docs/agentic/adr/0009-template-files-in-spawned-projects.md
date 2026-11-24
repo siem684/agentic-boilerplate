@@ -10,6 +10,7 @@ Template-only today:
 - `CHANGELOG.md`: the template's release history. Spawned projects read it in the template repository and in its GitHub Releases, before they sync.
 - `docs/superpowers/**`: the template's design spec and plans.
 - `scripts/release.mjs` and `tests/release.test.mjs`: they tag template releases ([0008](0008-versioning-and-release.md)).
+- `template.json`: the template's own version. `init.mjs` copies it into `boilerplate.lock` (project-owned) and then deletes it ([0010](0010-staleness-is-manual.md)).
 - `tests/agents.test.mjs`: it reads the seeded `CLAUDE.md`, which the project owns and rewrites.
 
 The other tests (`init`, `check`, `validate`, `vendor`, `telemetry`, `trim-skills`, `protect-paths`, `layers`) stay in `tests/`. They use temporary directories or the synced hook and settings, and they pass in an initialised project.

@@ -34,4 +34,4 @@ The self-check commands are in step 4 above. New tests go next to the existing o
 When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else. If `graphify-out/` exists, treat questions about the codebase's architecture or file relationships as a graphify query first.
 
 ## Staying current
-The agent may report that the template or a vendored component is stale (see the staleness report issue), but must not upgrade anything itself. Upgrades are run by a human with `vendor.mjs` and `sync.mjs`.
+Nothing checks for updates on a schedule. When asked whether the template or a dependency is stale, run `node scripts/staleness.mjs` and report its output, but never upgrade anything yourself. Upgrades are run by a human with `vendor.mjs` and `sync.mjs`.
