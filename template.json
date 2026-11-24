@@ -1,5 +1,5 @@
 {
   "$comment": "The version of this template, copied into boilerplate.lock by init.mjs when a project is spawned. Template-only: init deletes it. Edit it in the release commit; release.mjs refuses to tag if it differs from the release. In a fork, change repo.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "repo": "siem684/agentic-boilerplate"
 }
