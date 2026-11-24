@@ -34,7 +34,7 @@ The supported model for someone outside the maintainers is to work from a **fork
 | Control | What it does | Limit |
 |---|---|---|
 | Protected paths: `permissions.deny` plus the `protect-paths` hook | File tools cannot edit `_bmad/`, `_bmad-output/`, `.claude/` or `.github/workflows/` ([ADR 0004](adr/0004-protected-paths.md)). | Bash is checked by pattern only; see known gaps. |
-| No merge, no force-push | Not in the `--allowedTools` lists; also denied in `settings.json`. | See residual risk. |
+| No merge; force-push denied in common forms | No merge command is in the `--allowedTools` lists, and `settings.json` denies `gh pr merge`, `git push --force…` and `git push -f…`. | `git push` is allowed, and the deny rules match only those prefixes: `git push origin main --force` or `git push origin +main` are not caught. See known gaps. |
 | `CODEOWNERS` | Makes the owner the reviewer of `.github/`, `.claude/`, `docs/adr/` and `CLAUDE.md`. | Advisory without branch protection. |
 | Actions pinned by commit SHA | A moved tag cannot change what runs. | Upgrades are manual (`node scripts/staleness.mjs` reports them). |
 | Trimmed skills in CI | Only four BMAD skills are loaded: less context, fewer surprises. | Not a security boundary. |
@@ -49,6 +49,7 @@ The supported model for someone outside the maintainers is to work from a **fork
 - **Budget caps alert after the fact.** A run can cost more than the cap before anyone is told ([ADR 0003](adr/0003-budget-cap-and-loop-limits.md)).
 - **The Bash hook is best effort.** It catches the obvious ways to write to a protected path, not writes through an interpreter or a path assembled at run time ([ADR 0004](adr/0004-protected-paths.md)).
 - **`scripts/` is not protected.** An agent can edit the scripts that run in CI ([ADR 0004](adr/0004-protected-paths.md)).
+- **Force-push is denied only by prefix.** See the controls table. With no branch protection the default branch can be rewritten by a push the deny rules do not match.
 - **No branch protection on private repositories on a free plan.** Nothing on GitHub technically blocks a push or merge to the default branch there; `git push` is allowed to the agent ([ADR 0004](adr/0004-protected-paths.md)).
 - **Issue and PR text is untrusted input to the agent.** Only people with write access can start a run, but what they paste (a log, a quoted web page) can still carry instructions. The controls above limit the damage; they do not detect it.
 - **The `dev:deepseek` path is a pilot.** Whether the base-URL setting is honoured by the action is unverified ([ADR 0007](adr/0007-model-agnostic-base-url.md)).

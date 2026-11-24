@@ -3,14 +3,14 @@
 Status: built and merged (PR #9), unreleased. Milestone 7 of the [boilerplate design](2026-11-23-boilerplate-design.md).
 
 ## Intent
-A spawned project is a copy of the template at one moment. The template changes quickly (agents, hooks, workflows, scripts), and the owner needs a safe way to take those changes without overwriting what the project did on top of them. `sync.mjs` brings a project's **agentic layer** (see `layers.json`) up to a template release. A human runs it and reviews the result as a normal PR ([ADR 0010](../../agentic/adr/0010-staleness-is-manual.md): nothing runs on a schedule, and Claude cannot write the protected `.claude/` and `.github/workflows/` paths anyway).
+A spawned project is a copy of the template at one moment. The template changes quickly (agents, hooks, workflows, scripts), and the owner needs a safe way to take those changes without overwriting what the project did on top of them. `sync.mjs` brings a project's **agentic layer** (see `layers.json`) up to a template release. A human runs it and reviews the result as a normal PR ([ADR 0010](../../template/adr/0010-staleness-is-manual.md): nothing runs on a schedule, and Claude cannot write the protected `.claude/` and `.github/workflows/` paths anyway).
 
 ## Goals
 - Update only paths the agentic layer owns, from a released template version, with a dry-run first.
 - Never lose a local edit silently: a file the project changed is reported as a conflict and skipped.
 - Know which files the template removed, so they can be deleted safely.
 - Record the new version in `boilerplate.lock` so `staleness.mjs` agrees.
-- Move the template's tests into a synced directory so they follow the scripts they cover (known gap in [ADR 0009](../../agentic/adr/0009-template-files-in-spawned-projects.md)).
+- Move the template's tests into a synced directory so they follow the scripts they cover (known gap in [ADR 0009](../../template/adr/0009-template-files-in-spawned-projects.md)).
 
 ## Non-goals
 - No merge of conflicting edits (no three-way text merge, no `.orig` or `.template-new` files). The owner resolves a conflict by hand or with `--force`.
