@@ -1,0 +1,221 @@
+#!/usr/bin/env node
+// sync.mjs: bring this project's agentic layer (see layers.json) up to a template release.
+// A human runs it and reviews the result as a normal PR; nothing runs it on a schedule
+// (ADR 0010).
+//
+//   node scripts/sync.mjs [--to <x.y.z>] [--apply] [--force] [--diff]
+//                         [--from <dir>] [--base <dir>] [--root <dir>]
+//
+// Default is a dry-run: it prints what would change and writes nothing. --apply writes.
+// Three trees are compared per path the agentic layer owns: the template at the version in
+// boilerplate.lock ("old"), the template at the target ("new") and this project. A file the
+// project changed that the template also changed is a conflict: it is reported and skipped
+// (--force takes the template's version). Files that exist only in the project are never touched.
+//
+// The target is the latest GitHub Release of `repo` in boilerplate.lock, or --to. --from <dir>
+// uses a local template checkout as the new tree (its template.json gives the version) and
+// --base <dir> a local tree as the old tree; each replaces the matching release tarball.
+//
+// Exit code: 0 nothing to do (or applied cleanly), 1 changes pending in a dry-run or conflicts
+// remain, 2 the run failed (network, bad lock, dirty paths, not a git repository).
+// GitHub calls use GH_TOKEN, GITHUB_TOKEN or `gh auth token` when available; the token is
+// sent to the GitHub API only. Tests point the API elsewhere with STALENESS_GITHUB_API.
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { planSync } from "./sync-plan.mjs";
+import { readTarball } from "./tar.mjs";
+
+const GITHUB_API = process.env.STALENESS_GITHUB_API ?? "https://api.github.com";
+const die = (message) => {
+  console.error(`sync: ${message}`);
+  process.exit(2);
+};
+
+// ---- arguments -------------------------------------------------------------------------
+
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const i = args.indexOf(name);
+  if (i === -1) return false;
+  args.splice(i, 1);
+  return true;
+};
+const option = (name) => {
+  const i = args.indexOf(name);
+  if (i === -1) return undefined;
+  const value = args[i + 1];
+  if (value === undefined || value.startsWith("--")) die(`${name} needs a value`);
+  args.splice(i, 2);
+  return value;
+};
+const root = resolve(option("--root") ?? process.cwd());
+const to = option("--to");
+const fromDir = option("--from");
+const baseDir = option("--base");
+const apply = flag("--apply");
+const force = flag("--force");
+const showDiff = flag("--diff");
+if (args.length) die(`unknown argument ${args[0]}. Usage: node scripts/sync.mjs [--to x.y.z] [--apply] [--force] [--diff] [--from dir] [--base dir] [--root dir]`);
+if (fromDir && to) die("use --from or --to, not both");
+
+// ---- network ---------------------------------------------------------------------------
+
+let cachedToken;
+function githubToken() {
+  if (cachedToken === undefined) {
+    cachedToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || null;
+    if (!cachedToken) {
+      const r = spawnSync("gh", ["auth", "token"], { encoding: "utf8" });
+      cachedToken = r.status === 0 && r.stdout.trim() ? r.stdout.trim() : null;
+    }
+  }
+  return cachedToken;
+}
+
+async function get(url, accept) {
+  const headers = { Accept: accept, "User-Agent": "agentic-boilerplate-sync" };
+  if (githubToken()) headers.Authorization = `Bearer ${githubToken()}`;
+  let res;
+  try {
+    res = await fetch(url, { headers, signal: AbortSignal.timeout(30_000) });
+  } catch (e) {
+    throw new Error(`could not reach ${new URL(url).host} (${e.cause?.code ?? e.cause?.message ?? "network error"})`);
+  }
+  if ((res.status === 403 || res.status === 429) && res.headers.get("x-ratelimit-remaining") === "0") {
+    throw new Error("GitHub rate limit reached; set GH_TOKEN or run `gh auth login` to raise it");
+  }
+  if (!res.ok) throw new Error(`${new URL(url).host}${new URL(url).pathname} answered ${res.status}`);
+  return res;
+}
+
+// ---- versions --------------------------------------------------------------------------
+
+const parts = (v) => (String(v).match(/\d+/g) ?? []).map(Number);
+const strip = (v) => String(v).replace(/^v/, "");
+function compare(a, b) {
+  const [x, y] = [parts(a), parts(b)];
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0) ? -1 : 1;
+  }
+  return 0;
+}
+
+// ---- trees -----------------------------------------------------------------------------
+
+// A directory as a Map of forward-slash path -> bytes (regular files only).
+function readDir(dir) {
+  const files = new Map();
+  const walk = (rel) => {
+    for (const entry of readdirSync(join(dir, rel), { withFileTypes: true })) {
+      if (entry.name === ".git" || entry.name === "node_modules") continue;
+      const path = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(path);
+      else if (entry.isFile()) files.set(path, readFileSync(join(dir, path)));
+    }
+  };
+  walk("");
+  return files;
+}
+
+async function fetchTree(repo, version) {
+  try {
+    const res = await get(`${GITHUB_API}/repos/${repo}/tarball/v${version}`, "application/vnd.github+json");
+    return readTarball(Buffer.from(await res.arrayBuffer()));
+  } catch (e) {
+    return die(`could not get template v${version}: ${e.message}`);
+  }
+}
+
+function layersOf(tree, label) {
+  const file = tree.get("layers.json");
+  if (!file) die(`the template at ${label} has no layers.json`);
+  try {
+    return JSON.parse(file.toString("utf8")).layers ?? {};
+  } catch (e) {
+    return die(`layers.json of the template at ${label} is not valid JSON: ${e.message}`);
+  }
+}
+
+// ---- inputs ----------------------------------------------------------------------------
+
+const lockFile = join(root, "boilerplate.lock");
+if (!existsSync(lockFile)) die("no boilerplate.lock, so the template version is unknown (written by scripts/init.mjs)");
+let lock;
+try {
+  lock = JSON.parse(readFileSync(lockFile, "utf8"));
+  if (!/^[\w.-]+\/[\w.-]+$/.test(lock.repo ?? "") || !parts(lock.based_on).length) throw new Error("needs based_on and repo (owner/name)");
+} catch (e) {
+  die(`boilerplate.lock is not usable: ${e.message}`);
+}
+
+let target;
+if (fromDir) {
+  try {
+    target = strip(JSON.parse(readFileSync(join(fromDir, "template.json"), "utf8")).version);
+  } catch (e) {
+    die(`cannot read the version from ${fromDir}/template.json: ${e.message}`);
+  }
+} else if (to) {
+  target = strip(to);
+} else {
+  try {
+    target = strip((await (await get(`${GITHUB_API}/repos/${lock.repo}/releases/latest`, "application/json")).json()).tag_name);
+  } catch (e) {
+    die(`could not find the latest release of ${lock.repo}: ${e.message}`);
+  }
+}
+if (!parts(target).length) die(`"${target}" is not a version`);
+const order = compare(target, lock.based_on);
+if (order === 0) {
+  console.log(`already at ${lock.based_on}; nothing to sync`);
+  process.exit(0);
+}
+if (order < 0) die(`${target} is older than the ${lock.based_on} this project is based on; refusing to go back`);
+
+const oldTree = baseDir ? readDir(baseDir) : await fetchTree(lock.repo, lock.based_on);
+const newTree = fromDir ? readDir(fromDir) : await fetchTree(lock.repo, target);
+const oldLayers = layersOf(oldTree, `v${lock.based_on}`);
+const newLayers = layersOf(newTree, `v${target}`);
+const read = (path) => {
+  const file = join(root, path);
+  return existsSync(file) && statSync(file).isFile() ? readFileSync(file) : null;
+};
+const plan = planSync({ oldTree, newTree, oldLayers, newLayers, read });
+
+// ---- report ----------------------------------------------------------------------------
+
+console.log(`sync: ${lock.based_on} -> ${target} (${lock.repo})`);
+const groups = [
+  ["add", plan.filter((i) => !i.reason && i.action === "add")],
+  ["update", plan.filter((i) => !i.reason && i.action === "update")],
+  ["delete", plan.filter((i) => !i.reason && i.action === "delete")],
+  ["conflict", plan.filter((i) => i.reason)],
+];
+for (const [name, items] of groups) {
+  if (!items.length) continue;
+  console.log(`\n${name} (${items.length})`);
+  for (const i of items) console.log(`  ${i.path}${i.reason ? `  (${i.reason}${force ? `; --force would ${i.action} it` : ""})` : ""}`);
+}
+
+if (showDiff) {
+  for (const item of plan.filter((i) => i.action === "update" || i.reason)) {
+    const dir = mkdtempSync(join(tmpdir(), "sync-diff-"));
+    const sides = [["project", read(item.path)], ["template", newTree.get(item.path)]];
+    for (const [side, bytes] of sides) {
+      mkdirSync(dirname(join(dir, side, item.path)), { recursive: true });
+      writeFileSync(join(dir, side, item.path), bytes ?? "");
+    }
+    const r = spawnSync("git", ["diff", "--no-index", "--no-color", "--no-prefix", "--", `project/${item.path}`, `template/${item.path}`], { cwd: dir, encoding: "utf8" });
+    console.log(`\n${r.error ? `(git is needed for --diff: ${r.error.message})` : r.stdout.trimEnd()}`);
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+const counts = groups.map(([name, items]) => `${items.length} ${name}`).join(", ");
+console.log(`\n${apply ? "apply" : "dry-run"}: ${counts}.${apply ? "" : " Nothing was written; run again with --apply to write."}`);
+console.log(`release notes: https://github.com/${lock.repo}/releases/tag/v${target}`);
+
+if (apply) die("--apply is not implemented yet");
+process.exit(1);
