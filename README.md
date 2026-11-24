@@ -4,6 +4,14 @@ Template for guardrailed, agentic software projects: Claude Code agents, BMAD, g
 
 **Status: under construction (milestones 1-6 of 9 built; v0.2.0 released, not yet public).** The design and plan are in [docs/superpowers/specs/2026-11-23-boilerplate-design.md](docs/superpowers/specs/2026-11-23-boilerplate-design.md). Sync and the full documentation are still to come.
 
+## What you get
+
+- **Agents** in `.claude/agents/`: `claude-dev` runs a GitHub issue end to end and opens the PR; it calls `triage` (acceptance criteria), `qa-tester` (tests and self-check) and `fixer` (one failing check per fresh instance).
+- **Workflows** in `.github/workflows/`: `claude.yml` starts the dev agent when an issue, comment or review mentions `@claude`. `ci.yml` runs your `--check` command and posts an independent review on each PR. Add the label `dev:deepseek` to an issue to run it on DeepSeek instead ([ADR 0007](docs/agentic/adr/0007-model-agnostic-base-url.md)).
+- **Guardrails**: a `protect-paths` hook and permission denies keep agents out of `_bmad/`, `_bmad-output/`, `.claude/` and `.github/workflows/`; they cannot merge or force-push; CODEOWNERS makes you the reviewer for `.github/`, `.claude/`, `CLAUDE.md` and `docs/adr/` ([ADR 0004](docs/agentic/adr/0004-protected-paths.md)).
+- **Budget caps**: each run reports its cost and flags an overrun. Defaults are $5 for the dev agent and $1 for the review; override them with the repository variables `MAX_COST_USD_DEV` and `MAX_COST_USD_REVIEW` ([ADR 0003](docs/agentic/adr/0003-budget-cap-and-loop-limits.md)). Models are set with `DEV_MODEL` and `REVIEW_MODEL` ([ADR 0002](docs/agentic/adr/0002-model-allocation.md)).
+- **Decisions**: the template's own ADRs are in [docs/agentic/adr/](docs/agentic/adr/); your project's go in `docs/adr/`.
+
 ## Spawning a new project
 
 1. Create a repo from this template (`gh repo create <name> --template <owner>/agentic-boilerplate`).
@@ -58,6 +66,16 @@ node scripts/report.mjs --from downloads/ --json        # telemetry.jsonl files 
 ```
 
 It is read-only and prints runs, cost (total, average, maximum), turns, tokens, cache hit ratio and errors per job label, a total, and the cost per model. A run that is found twice is counted once. `--github` needs a token (`GH_TOKEN`, `GITHUB_TOKEN` or `gh auth login`; no `gh` binary is required), uses the git remote `origin` unless you pass `owner/name`, and only sees artifacts GitHub has not yet deleted. Exit code 0 means a report was printed, 1 bad input, 2 GitHub could not be read. Details: `node scripts/run.mjs help report`.
+
+## Working on the template itself
+
+The template's scripts have tests in `tests/`. Run them with Node 22 or later, using the glob form (the same as `template-ci.yml`):
+
+```
+node --test "tests/**/*.test.mjs"
+```
+
+A release is cut with `node scripts/release.mjs <x.y.z>` after bumping `template.json` and `CHANGELOG.md` ([ADR 0008](docs/agentic/adr/0008-versioning-and-release.md)); it only creates the tag and never pushes. `init.mjs` deletes the template-only files in a spawned project, so these instructions apply to the template repository.
 
 ## Layout and ownership
 
