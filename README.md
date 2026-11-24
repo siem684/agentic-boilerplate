@@ -47,6 +47,18 @@ node scripts/staleness.mjs
 
 It is read-only and reports, per dependency, your version, the latest and where to read the changes: the template itself (changelog entries since the version in `boilerplate.lock`, with their "Action required" lines, and the agentic-layer files that changed), the pinned BMAD and graphify versions, and the GitHub Actions in your workflows. Exit code 0 means current, 1 something is outdated, 2 a check could not run. It uses `GH_TOKEN` (or `gh auth token`) for GitHub when available; without one GitHub allows 60 requests an hour, and a private template cannot be read. Model IDs are not checked.
 
+## Cost and usage report
+
+Every agent run in CI appends one line to `telemetry.jsonl` and uploads it as a `telemetry-*` artifact (30 days). To see what the runs cost over time, run:
+
+```
+node scripts/report.mjs --github --since 30d            # download the artifacts of this repository
+node scripts/report.mjs --github --since 30d --by week  # one row per week instead of per job
+node scripts/report.mjs --from downloads/ --json        # telemetry.jsonl files you already have
+```
+
+It is read-only and prints runs, cost (total, average, maximum), turns, tokens, cache hit ratio and errors per job label, a total, and the cost per model. A run that is found twice is counted once. `--github` needs a token (`GH_TOKEN`, `GITHUB_TOKEN` or `gh auth login`; no `gh` binary is required), uses the git remote `origin` unless you pass `owner/name`, and only sees artifacts GitHub has not yet deleted. Exit code 0 means a report was printed, 1 bad input, 2 GitHub could not be read. Details: `node scripts/run.mjs help report`.
+
 ## Layout and ownership
 
 Every file belongs to one layer, listed in [layers.json](layers.json):

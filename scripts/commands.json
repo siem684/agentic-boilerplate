@@ -91,6 +91,23 @@
       ],
       "example": "node scripts/telemetry.mjs claude-execution-output.json review"
     },
+    "report": {
+      "summary": "Cost and usage report over many agent runs, from telemetry.jsonl files and/or the artifacts of CI runs (read-only)",
+      "audience": "you",
+      "flags": [
+        { "flag": "--from <file|dir>", "description": "Read a telemetry.jsonl file, or every *.jsonl under a directory; repeatable (default: ./telemetry.jsonl)" },
+        { "flag": "--github [owner/name]", "description": "Also download the telemetry-* artifacts of the repository (default: the git remote origin); needs GH_TOKEN, GITHUB_TOKEN or `gh auth login`" },
+        { "flag": "--since <date|Nd>", "description": "Only runs from a date like 2026-11-01 or from the last N days like 30d" },
+        { "flag": "--by <job|week>", "description": "Rows of the table: per job label (default) or per week (Monday, UTC)" },
+        { "flag": "--json", "description": "Print the report as JSON instead of a table" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Report printed (also when there are no records)" },
+        { "code": 1, "meaning": "Bad input: unknown flag, invalid value, missing file or no data source" },
+        { "code": 2, "meaning": "GitHub could not be read (no access, rate limit, network or an unreadable artifact)" }
+      ],
+      "example": "node scripts/report.mjs --github --since 30d --by week"
+    },
     "release": {
       "summary": "Create the git tag for a template release, but only if it is ready; never pushes",
       "audience": "template-maintainer",
