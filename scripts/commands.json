@@ -1,0 +1,110 @@
+{
+  "$comment": "Single source of truth for `node scripts/run.mjs`: what each script is for, who runs it, its flags and exit codes. tests/run.test.mjs fails when a script in scripts/ has no entry here. `notCommands` are the dispatcher and the library modules. `templateOnly` entries are hidden when the script is absent (they are deleted in spawned projects).",
+  "schemaVersion": 1,
+  "notCommands": ["run", "layers", "validate", "placeholders"],
+  "audiences": {
+    "you": "Run by you",
+    "automated": "Run by CI or hooks, not for manual use",
+    "template-maintainer": "Template maintainers only"
+  },
+  "commands": {
+    "init": {
+      "summary": "Fill in the template placeholders of a freshly spawned project",
+      "audience": "you",
+      "flags": [
+        { "flag": "--name <n>", "description": "Project name, one line, at most 100 characters" },
+        { "flag": "--description <d>", "description": "What the project does, one line, at most 300 characters" },
+        { "flag": "--owner <@user|@org/team>", "description": "GitHub handle or team that must review protected paths; @me does not work" },
+        { "flag": "--check \"<cmd>\"", "description": "Command that proves the project is healthy; lands in CLAUDE.md and ci.yml" },
+        { "flag": "--offline", "description": "Skip the `gh` lookup that checks the owner exists" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Placeholders filled in, or nothing left to fill in" },
+        { "code": 1, "meaning": "An input is invalid; nothing was written" }
+      ],
+      "example": "node scripts/init.mjs --name \"My App\" --description \"One line.\" --owner @your-github-username --check \"npm test\""
+    },
+    "check": {
+      "summary": "Report whether a spawned project is ready to use (read-only)",
+      "audience": "you",
+      "flags": [
+        { "flag": "--offline", "description": "Skip the `gh` query for repository secrets and variables" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Ready" },
+        { "code": 1, "meaning": "Something blocks use (leftover placeholder, missing component or required secret)" }
+      ],
+      "example": "node scripts/check.mjs --offline"
+    },
+    "vendor": {
+      "summary": "List the pinned external components and verify the installed versions (read-only, offline)",
+      "audience": "you",
+      "flags": [
+        { "flag": "list", "description": "Print each component with its pinned version and install command" },
+        { "flag": "verify", "description": "Compare installed versions with vendor.json" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "list succeeded, or verify found every component on its pinned version" },
+        { "code": 1, "meaning": "verify found a missing or differing component, or the subcommand is unknown" }
+      ],
+      "example": "node scripts/vendor.mjs verify"
+    },
+    "staleness": {
+      "summary": "Report which dependencies are behind: the template, vendored components and pinned GitHub Actions (read-only)",
+      "audience": "you",
+      "flags": [
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Everything is current" },
+        { "code": 1, "meaning": "Something is outdated" },
+        { "code": 2, "meaning": "A check could not run (wins over 1)" }
+      ],
+      "example": "node scripts/staleness.mjs"
+    },
+    "trim-skills": {
+      "summary": "In CI, keep only the named skills under .claude/skills/",
+      "audience": "automated",
+      "flags": [
+        { "flag": "<keep-skill> ...", "description": "Skill names to keep; at least one is required" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Skills trimmed, or there is no skills directory" },
+        { "code": 1, "meaning": "No keep list was given" }
+      ],
+      "example": "node scripts/trim-skills.mjs bmad-agent-dev bmad-code-review"
+    },
+    "telemetry": {
+      "summary": "Report usage, cost and turns of an agent run from its execution file",
+      "audience": "automated",
+      "flags": [
+        { "flag": "<execution_file>", "description": "The claude-code-action execution file" },
+        { "flag": "<job-label>", "description": "Name of the job in the report (default: unknown)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Reported, or skipped because the file is missing or unreadable" },
+        { "code": 1, "meaning": "The cost exceeds MAX_COST_USD" }
+      ],
+      "example": "node scripts/telemetry.mjs claude-execution-output.json review"
+    },
+    "release": {
+      "summary": "Create the git tag for a template release, but only if it is ready; never pushes",
+      "audience": "template-maintainer",
+      "templateOnly": true,
+      "flags": [
+        { "flag": "<x.y.z>", "description": "The SemVer version to tag" },
+        { "flag": "--dry-run", "description": "Run every check but do not create the tag" },
+        { "flag": "--root <dir>", "description": "Repository root (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Tag created, or ready (with --dry-run)" },
+        { "code": 1, "meaning": "Refused: version, changelog, template.json, working tree or existing tag is wrong" }
+      ],
+      "example": "node scripts/release.mjs 0.2.0 --dry-run"
+    }
+  }
+}
