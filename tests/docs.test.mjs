@@ -1,7 +1,7 @@
 // Template-only (see layers.json): checks documents that only exist in the template repository.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { owns } from "../scripts/layers.mjs";
@@ -34,4 +34,21 @@ test("README.md links no template-only path (init.mjs deletes those in a spawned
       assert.ok(!owns(layers["template-only"], probe), `README.md links ${target}, which init.mjs deletes`);
     }
   }
+});
+
+test("CONTRIBUTING.md, SECURITY.md and the fork guide exist and say what they must", () => {
+  for (const f of ["CONTRIBUTING.md", "SECURITY.md", "docs/template/fork-guide.md"]) {
+    assert.ok(existsSync(`${root}${f}`), `${f} is missing`);
+  }
+  const contributing = read("CONTRIBUTING.md");
+  for (const needle of ['node --test "tests/**/*.test.mjs"', "fork", "own key"]) {
+    assert.ok(contributing.includes(needle), `CONTRIBUTING.md does not mention ${needle}`);
+  }
+  const guide = resolved("docs/template/fork-guide.md");
+  for (const adr of readdirSync(`${root}docs/template/adr`).filter((f) => f.endsWith(".md"))) {
+    assert.ok(guide.includes(`docs/template/adr/${adr}`), `fork-guide.md does not link ${adr}`);
+  }
+  const security = read("SECURITY.md");
+  assert.ok(security.includes("private vulnerability reporting"));
+  assert.ok(resolved("SECURITY.md").includes("docs/agentic/security-model.md"));
 });
