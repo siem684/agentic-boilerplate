@@ -24,4 +24,4 @@ jobs:
         with:
           node-version: 22
       - name: Test the template scripts
-        run: node --test tests/
+        run: node --test "tests/**/*.test.mjs"
