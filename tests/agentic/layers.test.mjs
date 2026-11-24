@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { owns } from "../scripts/layers.mjs";
+import { owns } from "../../scripts/layers.mjs";
 
-const { layers } = JSON.parse(readFileSync(fileURLToPath(new URL("../layers.json", import.meta.url)), "utf8"));
+const { layers } = JSON.parse(readFileSync(fileURLToPath(new URL("../../layers.json", import.meta.url)), "utf8"));
 const templateOnly = layers["template-only"].paths;
 
 test("template-only layer lists everything that must not reach a spawned project", () => {
@@ -35,4 +35,11 @@ test("a template-only path is never also owned by another layer (sync would re-a
       assert.ok(!owns(layer, probe), `${p} is template-only but layer "${name}" also owns it; add it to that layer's exclude`);
     }
   }
+});
+
+test("tests/agentic/** is synced, not project-owned", () => {
+  assert.ok(owns(layers.agentic, "tests/agentic/init.test.mjs"));
+  assert.ok(!owns(layers.project, "tests/agentic/init.test.mjs"));
+  assert.ok(owns(layers.project, "tests/app.test.mjs"));
+  assert.ok(!owns(layers.agentic, "tests/app.test.mjs"));
 });

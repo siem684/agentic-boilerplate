@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const HOOK = fileURLToPath(new URL("../.claude/hooks/protect-paths.mjs", import.meta.url));
-const SETTINGS = fileURLToPath(new URL("../.claude/settings.json", import.meta.url));
+const HOOK = fileURLToPath(new URL("../../.claude/hooks/protect-paths.mjs", import.meta.url));
+const SETTINGS = fileURLToPath(new URL("../../.claude/settings.json", import.meta.url));
 const root = mkdtempSync(join(tmpdir(), "protect-paths-test-"));
 
 const run = (tool_name, tool_input) =>

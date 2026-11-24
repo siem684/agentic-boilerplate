@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SCRIPT = fileURLToPath(new URL("../scripts/staleness.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("../../scripts/staleness.mjs", import.meta.url));
 const execFileP = promisify(execFile);
 const SHA = "a".repeat(40);
 

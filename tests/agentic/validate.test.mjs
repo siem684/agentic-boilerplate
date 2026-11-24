@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateInputs, ownerExists } from "../scripts/validate.mjs";
+import { validateInputs, ownerExists } from "../../scripts/validate.mjs";
 
 const OK = { PROJECT_NAME: "Demo", PROJECT_DESCRIPTION: "A demo app.", OWNER: "@acme", CHECK_COMMANDS: "npm test" };
 const errorsFor = (over) => validateInputs({ ...OK, ...over });

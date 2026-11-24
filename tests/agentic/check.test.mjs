@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const INIT_SCRIPT = fileURLToPath(new URL("../scripts/init.mjs", import.meta.url));
-const SCRIPT = fileURLToPath(new URL("../scripts/check.mjs", import.meta.url));
+const INIT_SCRIPT = fileURLToPath(new URL("../../scripts/init.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("../../scripts/check.mjs", import.meta.url));
 
 function spawned() {
   const root = mkdtempSync(join(tmpdir(), "check-test-"));

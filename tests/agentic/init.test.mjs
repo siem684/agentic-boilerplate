@@ -6,7 +6,7 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const SCRIPT = fileURLToPath(new URL("../scripts/init.mjs", import.meta.url));
+const SCRIPT = fileURLToPath(new URL("../../scripts/init.mjs", import.meta.url));
 
 function spawned() {
   const root = mkdtempSync(join(tmpdir(), "init-test-"));
@@ -185,7 +185,7 @@ test("init refuses an invalid template.json and changes nothing", () => {
 
 // Guard against the real ci.yml silently ignoring --check (it used to hard-code `exit 1`).
 // Only meaningful in the template itself; skipped once a project has been initialised.
-const REAL_CI = fileURLToPath(new URL("../.github/workflows/ci.yml", import.meta.url));
+const REAL_CI = fileURLToPath(new URL("../../.github/workflows/ci.yml", import.meta.url));
 test("the shipped ci.yml runs the --check command", { skip: !readFileSync(REAL_CI, "utf8").includes("{{CHECK_COMMANDS}}") }, () => {
   const root = spawned();
   writeFileSync(join(root, ".github/workflows/ci.yml"), readFileSync(REAL_CI, "utf8"));
