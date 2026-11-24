@@ -2,6 +2,8 @@
 
 What has been used for real, what is only prescribed, and where help is wanted. The statuses are the template owner's statements, recorded as given. This page invents no numbers: where a figure or an evidence trail is not in the repository, it says "not recorded". The reasoning behind each decision is in [decisions](decisions.md).
 
+"Proven" here is a weak word on purpose: it means used in other projects, according to the owner. Which projects, for how long and with what results is not recorded, and nothing has been measured. Reports with numbers are how this page gets stronger (see `CONTRIBUTING.md` in the template repository).
+
 How to read the groups: **proven** means used in other projects; **prescribed, not exercised** means the setup says what to do but it has not been tried; **open for improvement** means it works but nobody claims it is optimal; **built here, tested here only** means covered by this template's own tests and not yet run on a real spawned project.
 
 ## Proven (used in other projects)

@@ -1,15 +1,15 @@
 # agentic-boilerplate
 
-Template for guardrailed, agentic software projects: Claude Code agents, BMAD, graphify, protected paths, budget-capped CI, and documented decisions.
+Template for agentic software projects: Claude Code agents, BMAD, graphify, protected paths, cost alerts in CI, and documented decisions. The guardrails reduce mistakes and cost; they are not a sandbox, and the [security model](docs/agentic/security-model.md) lists where they stop.
 
-**Status: under construction (milestones 1-8 of 9 built; v0.2.0 released, not yet public).** The design is in `docs/superpowers/specs/2026-11-23-boilerplate-design.md` (template repository only). Going public is still to come.
+**Status: under construction (milestones 1-8 of 9 built; v0.2.0 released, not yet public).** The design is in `docs/superpowers/specs/2026-11-23-boilerplate-design.md` (template repository only). Going public is still to come, and no licence has been chosen yet.
 
 ## What you get
 
 - **Agents** in `.claude/agents/`: `claude-dev` runs a GitHub issue end to end and opens the PR; it calls `triage` (acceptance criteria), `qa-tester` (tests and self-check) and `fixer` (one failing check per fresh instance).
-- **Workflows** in `.github/workflows/`: `claude.yml` starts the dev agent when an issue, comment or review mentions `@claude`. `ci.yml` runs your `--check` command and posts an independent review on each PR. Add the label `dev:deepseek` to an issue to run it on DeepSeek instead ([ADR 0007](docs/agentic/adr/0007-model-agnostic-base-url.md)).
-- **Guardrails**: a `protect-paths` hook and permission denies keep agents out of `_bmad/`, `_bmad-output/`, `.claude/` and `.github/workflows/`; they cannot merge or force-push; CODEOWNERS makes you the reviewer for `.github/`, `.claude/`, `CLAUDE.md` and `docs/adr/` ([ADR 0004](docs/agentic/adr/0004-protected-paths.md)).
-- **Budget caps**: each run reports its cost and flags an overrun. Defaults are $5 for the dev agent and $1 for the review; override them with the repository variables `MAX_COST_USD_DEV` and `MAX_COST_USD_REVIEW` ([ADR 0003](docs/agentic/adr/0003-budget-cap-and-loop-limits.md)). Models are set with `DEV_MODEL` and `REVIEW_MODEL` ([ADR 0002](docs/agentic/adr/0002-model-allocation.md)).
+- **Workflows** in `.github/workflows/`: `claude.yml` starts the dev agent when an issue, comment or review mentions `@claude`. `ci.yml` runs your `--check` command and posts an independent review on each PR. Add the label `dev:deepseek` to an issue to run it on DeepSeek instead (a pilot, not yet verified; [ADR 0007](docs/agentic/adr/0007-model-agnostic-base-url.md)).
+- **Guardrails**: a `protect-paths` hook and permission denies stop agents from editing `_bmad/`, `_bmad-output/`, `.claude/` and `.github/workflows/` (exact for file tools, best effort for Bash); agents are not given merge or force-push commands; CODEOWNERS makes you the reviewer for `.github/`, `.claude/`, `CLAUDE.md` and `docs/adr/` ([ADR 0004](docs/agentic/adr/0004-protected-paths.md)).
+- **Cost alerts**: each run reports its cost and flags an overrun after the run; this alerts, it does not stop spending (turn and time limits do). Defaults are $5 for the dev agent and $1 for the review; override them with the repository variables `MAX_COST_USD_DEV` and `MAX_COST_USD_REVIEW` ([ADR 0003](docs/agentic/adr/0003-budget-cap-and-loop-limits.md)). Models are set with `DEV_MODEL` and `REVIEW_MODEL` ([ADR 0002](docs/agentic/adr/0002-model-allocation.md)).
 - **Decisions**: the template's own ADRs are in [docs/agentic/adr/](docs/agentic/adr/) and indexed in [docs/agentic/decisions.md](docs/agentic/decisions.md); your project's go in `docs/adr/`.
 
 Agent runs started by `@claude` use your repository's own `ANTHROPIC_API_KEY`, and anyone with write access can start one. Read the [security model](docs/agentic/security-model.md) before you give someone access.
@@ -106,4 +106,4 @@ Every file belongs to one layer, listed in [layers.json](layers.json):
 | vendored (`_bmad/`, `bmad-*` and `graphify` skills)                                                  | upstream, version pinned in `vendor.json`, installed per project (see [vendoring](docs/agentic/vendoring.md)) | no, `vendor.mjs verify` checks the pin |
 | project (`src/`, `tests/` except `tests/agentic/`, `docs/adr/`, `_bmad/custom`, seeded `CLAUDE.md`/`README.md`)              | the spawned project                                                                                           | never                                  |
 
-`CLAUDE.md` contains `{{PLACEHOLDERS}}` that `init.mjs` fills in. It also deletes the files that are about the template itself (the `template-only` layer in `layers.json`: the template's CI, changelog, design docs and release script). See ADR 0009 in `docs/template/adr/` of the template repository.
+`CLAUDE.md` contains `{{PLACEHOLDERS}}` that `init.mjs` fills in. It also deletes the files that are about the template itself (the `template-only` layer in `layers.json`: the template's CI, changelog, design docs and release script). See ADR 0009 in `docs/template/adr/` of the template repository. The table leaves out the seeded files (copied once, then yours) and the template-only files; [architecture](docs/agentic/architecture.md#layers-and-ownership) lists all five groups.

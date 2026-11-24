@@ -2,7 +2,7 @@
 
 One row per decision record in [adr/](adr/): what was chosen, what was rejected, and how well it has been tested (the groups of the [register](register.md)). The ADRs hold the reasoning; this page points to them and does not repeat them. Your project's own decisions go in `docs/adr/`.
 
-Statuses are the register's: **proven** means used in other projects, according to the owner of the template. Where an ADR has no record of the alternatives, the table says "not recorded" and does not guess.
+The status column is the register's group, not the `Status:` line inside each ADR (which says whether the decision is accepted). Statuses are the register's: **proven** means used in other projects, according to the owner of the template. Where an ADR has no record of the alternatives, the table says "not recorded" and does not guess.
 
 | Decision | Alternatives rejected | Status | ADR |
 |---|---|---|---|

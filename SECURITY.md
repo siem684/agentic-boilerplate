@@ -4,7 +4,7 @@
 
 Please report it privately, not in a public issue or PR. Use GitHub's private vulnerability reporting: on the repository page, open the Security tab and choose "Report a vulnerability". Say what you found, how to reproduce it and what you think an attacker gains.
 
-There is no fixed response time. Reports are read by the maintainer as soon as possible.
+There is no fixed response time. Reports are read by the maintainer as soon as possible. If the Security tab offers no such option, open a public issue that asks for a private way to reach the maintainer and contains no details of the vulnerability. Please test only against your own fork and your own key, never against someone else's repository.
 
 ## What is in scope
 
