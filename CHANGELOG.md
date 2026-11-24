@@ -8,6 +8,7 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ### Agentic layer
 - `protect-paths` hook: path matching is now case-insensitive, `NotebookEdit` is checked (`notebook_path`), and `Bash` commands that write to a protected path are blocked on a best-effort basis. The `settings.json` hook matcher is now `Edit|Write|MultiEdit|NotebookEdit|Bash`. Residual risks (interpreter writes, unprotected `scripts/`) are documented in ADR 0004. Tests in `tests/protect-paths.test.mjs`.
+- `claude-dev` no longer hard-codes `master` as the PR base: it runs `gh pr create` without `--base`, so PRs target the repository's default branch (works for `main` and `master`). Guard test in `tests/agents.test.mjs`.
 
 **Action required:** after sync, review that the hook still lets your own Bash commands through. A command that names `.claude/`, `_bmad/`, `_bmad-output/` or `.github/workflows/` together with a write (for example `cp`, `rm`, `>`) is now blocked; do those by hand.
 
