@@ -1,6 +1,6 @@
 # Architecture
 
-How the pieces fit together and what happens from an issue to a merged PR. This describes what is in the repository today; where something is a guess or only tested in this template, the register says so.
+How the pieces fit together and what happens from an issue to a merged PR. This describes what is in the repository today; where something is a guess or only tested in this template, the [register](register.md) says so.
 
 ## One run, end to end
 
@@ -60,7 +60,7 @@ A third workflow, `template-ci.yml`, runs this template's own tests and exists o
 ## Where the agents get context
 
 - **`CLAUDE.md`**: project rules, the per-issue workflow and the self-check commands. `init.mjs` fills in its placeholders when a project is spawned.
-- **`docs/adr/`**: your project's decisions. The template's own synced decisions are in `docs/agentic/adr/` (see decisions).
+- **`docs/adr/`**: your project's decisions. The template's own synced decisions are in `docs/agentic/adr/` (see [decisions](decisions.md)).
 - **graphify**: if `graphify-out/GRAPH_REPORT.md` exists, `claude-dev` reads it first and then reads only the files it points to ([ADR 0006](adr/0006-knowledge-graph.md)). graphify is installed per project, not shipped ([vendoring](vendoring.md)).
 - **BMAD skills**: `bmad-agent-dev`, `bmad-build`, `bmad-qa-generate-e2e-tests` and `bmad-code-review` are used where installed. The other BMAD skills are removed in CI to save context.
 

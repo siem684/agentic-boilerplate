@@ -67,3 +67,38 @@ test("security-model.md states the spend model", () => {
   }
   assert.match(text, /^#{1,3} .*known gaps/im);
 });
+
+const adrFiles = () => readdirSync(`${root}docs/agentic/adr`).filter((f) => f.endsWith(".md")).sort();
+
+test("every synced ADR has an Alternatives section", () => {
+  assert.ok(adrFiles().length >= 7);
+  for (const f of adrFiles()) assert.match(read(`docs/agentic/adr/${f}`), /^##\s+Alternatives/m, `${f} has no "## Alternatives" section`);
+});
+
+test("decisions.md lists every ADR in docs/agentic/adr", () => {
+  assert.ok(existsSync(`${root}docs/agentic/decisions.md`), "docs/agentic/decisions.md is missing");
+  const text = read("docs/agentic/decisions.md");
+  for (const f of adrFiles()) assert.ok(text.includes(`adr/${f}`), `decisions.md does not link adr/${f}`);
+  // Plain-text mentions of docs/template are allowed; links are not.
+  assert.ok(!resolved("docs/agentic/decisions.md").some((t) => t.startsWith("docs/template")), "decisions.md must not link template-only docs");
+});
+
+test("decisions.md and register.md agree with ADR 0007 (pilot)", () => {
+  assert.ok(existsSync(`${root}docs/agentic/register.md`), "docs/agentic/register.md is missing");
+  const row = read("docs/agentic/decisions.md").split("\n").find((l) => l.includes("0007-model-agnostic-base-url.md"));
+  assert.ok(row, "decisions.md has no row for ADR 0007");
+  assert.match(row, /pilot/i);
+  assert.match(read("docs/agentic/adr/0007-model-agnostic-base-url.md"), /^- Status: .*pilot/im);
+
+  const register = read("docs/agentic/register.md");
+  const headings = [...register.matchAll(/^## (.+)$/gm)].map((m) => m[1].trim());
+  assert.deepEqual(headings, [
+    "Proven (used in other projects)",
+    "Prescribed, not exercised",
+    "Open for improvement",
+    "Built here, tested here only",
+  ]);
+  const sections = register.split(/^## /m).slice(1);
+  const withBaseUrl = sections.filter((s) => /base url/i.test(s)).map((s) => s.split("\n")[0].trim());
+  assert.deepEqual(withBaseUrl, ["Prescribed, not exercised"]);
+});

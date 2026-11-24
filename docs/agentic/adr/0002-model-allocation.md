@@ -15,3 +15,6 @@
 - The default model is changed through the variable, not through a workflow edit.
 - Telemetry reports cost per model.
 - Model IDs are pinned in agent frontmatter; `node scripts/staleness.mjs` cannot check them (there is no key-free way to ask which models are current), so it prints a reminder to revisit them, and the changelog flags changes.
+
+## Alternatives
+Not recorded. The ADR records the allocation that was chosen, not the options that were considered.

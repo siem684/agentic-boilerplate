@@ -3,7 +3,7 @@
 - Status: accepted
 
 ## Context
-Agent work needs one runtime with one permission model and one telemetry path. Alternatives (a Copilot agent template, a custom runner) would duplicate that.
+Agent work needs one runtime with one permission model and one telemetry path.
 
 ## Decision
 All agent work runs on claude-code-action. Agent definitions live in `.claude/agents/`.
@@ -11,3 +11,7 @@ All agent work runs on claude-code-action. Agent definitions live in `.claude/ag
 ## Consequences
 - One runtime, one set of permissions and telemetry.
 - Agent definitions are protected paths (see 0004); a human edits them.
+
+## Alternatives
+- A Copilot agent template: would duplicate the permission model and telemetry path.
+- A custom runner: same, and more to maintain.

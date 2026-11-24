@@ -14,3 +14,8 @@ The provider decides the key, and there is no fallback between them. With `dev:d
 ## Consequences
 - If `env:` does not work in the pilot, fall back to a step that runs `claude -p` headless.
 - Tool use, subagents and caching may behave differently; telemetry cost is computed per model.
+
+## Alternatives
+- Bedrock, Vertex or Foundry: the only non-Anthropic providers claude-code-action officially supports; they serve Claude models, so they do not give a non-Claude model.
+- A step that runs `claude -p` headless: the fallback if `ANTHROPIC_BASE_URL` set through `env:` does not work in the pilot.
+- Falling back to `ANTHROPIC_API_KEY` when the DeepSeek key is missing: rejected, because it would send that key to another provider (see Key handling).
