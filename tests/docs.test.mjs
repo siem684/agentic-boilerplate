@@ -62,6 +62,17 @@ test("no document names the original project", () => {
   for (const f of files) assert.doesNotMatch(read(f), /nissimo/i, `${f} names the original project`);
 });
 
+test("the template is MIT licensed, and init.mjs does not hand the licence to a spawned project", () => {
+  assert.ok(existsSync(`${root}LICENSE`), "LICENSE is missing");
+  const text = read("LICENSE");
+  assert.match(text, /^MIT License\r?\n/, "LICENSE is not the MIT text");
+  assert.match(text, /^Copyright \(c\) 2026 \S.+$/m, "LICENSE names no copyright holder");
+  assert.ok(owns(layers["template-only"], "LICENSE"), "LICENSE is not in the template-only layer");
+  const status = read("README.md").split("\n").find((l) => l.startsWith("**Status:"));
+  assert.ok(!/no licen[cs]e/i.test(status), "the status line still says there is no licence");
+  assert.ok(status.includes("MIT"), "the status line does not name the licence");
+});
+
 test("README.md links the synced docs index and the status line is current", () => {
   const links = resolved("README.md");
   for (const f of ["docs/agentic/README.md", "docs/agentic/security-model.md", "docs/agentic/register.md"]) {

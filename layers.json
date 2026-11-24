@@ -81,6 +81,7 @@
         "docs/template/**",
         "CONTRIBUTING.md",
         "SECURITY.md",
+        "LICENSE",
         "tests/docs.test.mjs"
       ]
     }

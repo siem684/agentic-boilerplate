@@ -2,7 +2,7 @@
 
 Template for agentic software projects: Claude Code agents, BMAD, graphify, protected paths, cost alerts in CI, and documented decisions. The guardrails reduce mistakes and cost; they are not a sandbox, and the [security model](docs/agentic/security-model.md) lists where they stop.
 
-**Status: under construction (milestones 1-8 of 9 built; v0.3.0 released, not yet public).** The design is in `docs/superpowers/specs/2026-11-23-boilerplate-design.md` (template repository only). Going public is still to come, and no licence has been chosen yet.
+**Status: under construction (milestones 1-8 of 9 built; v0.3.0 released, not yet public).** The design is in `docs/superpowers/specs/2026-11-23-boilerplate-design.md` (template repository only). Going public is still to come. Licence: MIT.
 
 ## What you get
 

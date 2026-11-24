@@ -6,6 +6,11 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ## [Unreleased]
 
+### Template-only
+- New `LICENSE` (MIT) for the template repository. It is in the `template-only` layer, so `init.mjs` removes it in a spawned project: choose your own licence there. The README status line names the licence, and `tests/docs.test.mjs` checks both.
+
+**Action required:** none.
+
 ## [0.3.0] - 2026-11-24
 
 ### Agentic layer
