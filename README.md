@@ -24,6 +24,19 @@ Template for guardrailed, agentic software projects: Claude Code agents, BMAD, g
 3. Install the pinned components that `node scripts/vendor.mjs verify` reports as missing.
 4. Run `node scripts/check.mjs`. It lists leftover placeholders, missing components, and the repository secrets and variables to set (`ANTHROPIC_API_KEY` is required; it queries them with `gh` when available, `--offline` skips that). Exit code 1 means something blocks use.
 
+## Commands
+
+Not every script is meant to be run by hand: some are called by CI or hooks. To see what you can run, and with which flags, ask the dispatcher:
+
+```
+node scripts/run.mjs                    # every command, grouped by who runs it
+node scripts/run.mjs help staleness     # purpose, flags, exit codes and an example
+node scripts/run.mjs staleness          # shorthand for node scripts/staleness.mjs
+node scripts/run.mjs check --offline    # flags are passed straight through
+```
+
+The exit code of the script is the exit code of `run.mjs`. The list comes from [scripts/commands.json](scripts/commands.json); a test fails when a script has no entry there. CI and hooks keep calling the scripts directly. A Node project can add its own alias, for example `"agentic": "node scripts/run.mjs"` in its `package.json`, to get `npm run agentic -- staleness`.
+
 ## Checking for updates
 
 Nothing checks on a schedule ([ADR 0010](docs/agentic/adr/0010-staleness-is-manual.md)). When you want to know whether you are behind, run:
