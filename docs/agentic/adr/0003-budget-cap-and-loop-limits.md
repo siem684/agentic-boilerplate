@@ -11,3 +11,7 @@
 ## Consequences
 - Worst-case cost per issue is bounded by turns and time; the cost variable only reports overruns.
 - Caps are tuned from telemetry in each project.
+
+## Alternatives
+- A hard cost stop: not what was chosen: the check runs after the run has finished and cannot interrupt spending, so the cap alerts and the turn and time limits are the hard bounds.
+- Other loop limits than 2 fixer rounds and 1 automated review round: not recorded.

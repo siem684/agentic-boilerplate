@@ -15,7 +15,7 @@ Bump rule:
 ## Consequences
 - Spawned projects can read what changed and what they must do before upgrading.
 - A release cannot be tagged by accident or without release notes.
-- Pushing the tag and publishing the Release stay human decisions, consistent with [0004](0004-protected-paths.md).
+- Pushing the tag and publishing the Release stay human decisions, consistent with [0004](../../agentic/adr/0004-protected-paths.md).
 
 ## Rejected
 - Tagging from CI on merge: it makes releases implicit and removes the human decision.

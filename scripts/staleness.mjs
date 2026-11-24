@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // staleness.mjs: report which dependencies of this project are behind. Read-only, and it
-// only runs when someone invokes it: nothing schedules it (ADR 0010).
+// only runs when someone invokes it: nothing schedules it.
 //
 //   node scripts/staleness.mjs
 //

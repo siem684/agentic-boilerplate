@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // sync.mjs: bring this project's agentic layer (see layers.json) up to a template release.
-// A human runs it and reviews the result as a normal PR; nothing runs it on a schedule
-// (ADR 0010).
+// A human runs it and reviews the result as a normal PR; nothing runs it on a schedule.
 //
 //   node scripts/sync.mjs [--to <x.y.z>] [--apply] [--force] [--diff]
 //                         [--from <dir>] [--base <dir>] [--root <dir>]

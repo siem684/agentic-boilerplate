@@ -65,27 +65,16 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # PR's are being opened by claude[bot]; without this the action will refuse the run.
           allowed_bots: "claude,github-actions"
+          # The review standard, the output format and the loop protection are in .claude/agents/reviewer.md.
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
             PREVIOUS_REVIEWS: ${{ steps.rounds.outputs.previous }}
 
-            You are an independent code reviewer. You did NOT write this change; be critical and concrete.
-            Do not change any files. Read CLAUDE.md for the project rules.
-
-            1. Collect diff and description with `gh pr view` and `gh pr diff`; read the associated issue.
-            2. Use the review lenses of the bmad-code-review skill (blind hunter, edge cases, acceptance auditor) if they are available. 
-               If not, review yourself on the points below. Report one combined result and do not ask questions.
-            3. Check whether the change meets the issue's acceptance criteria and stays in scope.
-               Check the quality of the tests: do they really test the behaviour, and was test-first followed?
-               Check that the diff is small and has no unrelated changes, and that no protected path is touched.
-               Check the project-specific rules in CLAUDE.md and docs/adr/.
-            4. Post exactly one review with gh pr comment, starting with the line <!-- claude-review -->, with the headings "Blocking" and "Suggestions" 
-               (file:line, what is wrong, proposed fix). No filler praise. If there are no blocking points, say so explicitly.
-            5. Loop protection: PREVIOUS_REVIEWS above is the number of earlier <!-- claude-review --> comments on this PR.
-               If PREVIOUS_REVIEWS is 0 and there are blocking points, end your comment with the line @claude please fix the blocking findings above.
-               If PREVIOUS_REVIEWS is 1 or more, do NOT mention @claude; ask the maintainer to take a look.
+            Review this pull request in CI mode.
+          # --model overrides the model in the agent file (Opus, for a person who starts it); CI runs the lighter one.
           claude_args: |
+            --agent reviewer
             --model ${{ vars.REVIEW_MODEL || 'claude-sonnet-5-5' }}
             --max-turns 20
             --allowedTools "Read,Grep,Glob,Skill,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git diff:*),Bash(git log:*)"

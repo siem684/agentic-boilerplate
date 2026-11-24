@@ -8,3 +8,6 @@
 ## Consequences
 - Less context spent on exploration.
 - Graph commits add diff noise, hence the separate PRs.
+
+## Alternatives
+Not recorded. The ADR records how the graph is used, not the other ways to give agents context.

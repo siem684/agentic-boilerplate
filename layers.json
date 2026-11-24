@@ -51,7 +51,8 @@
       "exclude": [
         "tests/agentic/**",
         "tests/release.test.mjs",
-        "tests/agents.test.mjs"
+        "tests/agents.test.mjs",
+        "tests/docs.test.mjs"
       ],
       "seeded": {
         "description": "Copied once at spawn time, then owned by the project. Sync never overwrites them.",
@@ -76,7 +77,11 @@
         "scripts/release.mjs",
         "tests/release.test.mjs",
         "tests/agents.test.mjs",
-        "template.json"
+        "template.json",
+        "docs/template/**",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "tests/docs.test.mjs"
       ]
     }
   }

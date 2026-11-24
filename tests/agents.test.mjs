@@ -37,3 +37,31 @@ test("CLAUDE.md points at the manual staleness check and does not promise an iss
 test("claude-dev tells the agent that gh targets the default branch", () => {
   assert.match(agent("claude-dev"), /default branch/i);
 });
+
+// ---- the reviewer agent is the one review standard, for people and for CI -------------------
+
+const ciYml = readFileSync(fileURLToPath(new URL("../.github/workflows/ci.yml", import.meta.url)), "utf8");
+const MARKER = "<!-- claude-review -->";
+
+test("the CI review job runs the reviewer agent and keeps the model override", () => {
+  assert.match(ciYml, /--agent reviewer\b/);
+  assert.match(ciYml, /--model \$\{\{ vars\.REVIEW_MODEL \|\| 'claude-sonnet-5-5' \}\}/);
+});
+
+test("the review standard is written once, in reviewer.md, not again in ci.yml", () => {
+  const reviewer = agent("reviewer");
+  for (const needle of [MARKER, "PREVIOUS_REVIEWS", "@claude please fix the blocking findings above", "## Blocking", "## Suggestions"]) {
+    assert.ok(reviewer.includes(needle), `reviewer.md must contain: ${needle}`);
+  }
+  assert.doesNotMatch(reviewer, /Reply with JSON only/);
+  // ci.yml still counts earlier reviews by the marker, so both files must agree on it.
+  assert.ok(ciYml.includes(MARKER), "ci.yml counts earlier reviews by the marker");
+  assert.doesNotMatch(ciYml, /independent code reviewer/i, "the review rules must not be repeated in the workflow prompt");
+  assert.doesNotMatch(ciYml, /"Blocking" and "Suggestions"/);
+});
+
+test("reviewer.md says in its frontmatter that --model overrides its model", () => {
+  const frontmatter = agent("reviewer").match(/^---\r?\n([\s\S]*?)\r?\n---/)[1];
+  assert.match(frontmatter, /^model: claude-opus-5-5$/m);
+  assert.match(frontmatter, /^#.*--model.*overrid/im);
+});

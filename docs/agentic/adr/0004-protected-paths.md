@@ -15,3 +15,8 @@ The agent may not edit `_bmad/`, `_bmad-output/`, `.claude/` or `.github/workflo
 **`scripts/` is not protected.** It is template-owned (see `layers.json`), but a project may legitimately add its own scripts there, and `sync.mjs` and review catch unintended changes. Add `/^scripts\//` to the hook's list to protect it.
 
 **Branch protection** and rulesets are unavailable on private repositories on a free GitHub plan, so `CODEOWNERS` is advisory there and nothing on GitHub technically blocks a merge to the default branch. Mitigation: the `--allowedTools` lists in the workflows contain no `gh pr merge`, and CLAUDE.md requires work on `claude/issue-*` branches. Residual risk: `Bash(git push:*)` is allowed, so a direct push to the default branch is not technically blocked. Where the plan allows it, enable 1 required approval, code owner review, no force push, admin bypass for the owner.
+
+## Alternatives
+- `permissions.deny` alone, or the hook alone: not chosen: the decision is to enforce both. Why one was not enough is not recorded.
+- Protecting `scripts/` as well: not done, see Known gaps.
+- Branch protection and rulesets instead of CODEOWNERS advice: not available on private repositories on a free plan, see Known gaps.

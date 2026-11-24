@@ -1,16 +1,16 @@
 # Sync (`scripts/sync.mjs`) and synced tests
 
-Status: built (unreleased). Milestone 7 of the [boilerplate design](2026-11-23-boilerplate-design.md).
+Status: built and merged (PR #9), unreleased. Milestone 7 of the [boilerplate design](2026-11-23-boilerplate-design.md).
 
 ## Intent
-A spawned project is a copy of the template at one moment. The template changes quickly (agents, hooks, workflows, scripts), and the owner needs a safe way to take those changes without overwriting what the project did on top of them. `sync.mjs` brings a project's **agentic layer** (see `layers.json`) up to a template release. A human runs it and reviews the result as a normal PR ([ADR 0010](../../agentic/adr/0010-staleness-is-manual.md): nothing runs on a schedule, and Claude cannot write the protected `.claude/` and `.github/workflows/` paths anyway).
+A spawned project is a copy of the template at one moment. The template changes quickly (agents, hooks, workflows, scripts), and the owner needs a safe way to take those changes without overwriting what the project did on top of them. `sync.mjs` brings a project's **agentic layer** (see `layers.json`) up to a template release. A human runs it and reviews the result as a normal PR ([ADR 0010](../../template/adr/0010-staleness-is-manual.md): nothing runs on a schedule, and Claude cannot write the protected `.claude/` and `.github/workflows/` paths anyway).
 
 ## Goals
 - Update only paths the agentic layer owns, from a released template version, with a dry-run first.
 - Never lose a local edit silently: a file the project changed is reported as a conflict and skipped.
 - Know which files the template removed, so they can be deleted safely.
 - Record the new version in `boilerplate.lock` so `staleness.mjs` agrees.
-- Move the template's tests into a synced directory so they follow the scripts they cover (known gap in [ADR 0009](../../agentic/adr/0009-template-files-in-spawned-projects.md)).
+- Move the template's tests into a synced directory so they follow the scripts they cover (known gap in [ADR 0009](../../template/adr/0009-template-files-in-spawned-projects.md)).
 
 ## Non-goals
 - No merge of conflicting edits (no three-way text merge, no `.orig` or `.template-new` files). The owner resolves a conflict by hand or with `--force`.
@@ -91,3 +91,12 @@ Tests use temp directories and `--from`/`--base` trees for the decision table (e
 - Whether the tar reader lives in `sync.mjs` or a small shared module (`report.mjs` keeps its own zip reader, so no shared module is required).
 - Exact handling of line endings: compare bytes as they are; the repo is LF, and a CRLF checkout shows as a conflict. If that turns out to bite on Windows, normalise on compare only, never on write.
 - Pruning of empty directories after deletes.
+
+## As built
+Merged in [PR #9](https://github.com/siem684/agentic-boilerplate/pull/9), unreleased (it ships with the next template version). Choices made while building, where the design was open or silent:
+- **Modules:** the tar reader is `scripts/tar.mjs` and the decision table is `scripts/sync-plan.mjs` (pure, no I/O), next to `sync.mjs`. Both are libraries in `commands.json` (`notCommands`); `sync` is a command there. `staleness.mjs` was not touched, so its small fetch helper is repeated in `sync.mjs`.
+- **Exit code of a dry-run:** 1 whenever the target differs from `based_on`, even when no file changes, because `--apply` would still move `boilerplate.lock`; the output then says "only boilerplate.lock would move".
+- **Arguments:** an unknown argument, or `--from` together with `--to`, exits 2.
+- **Case-insensitive filesystems:** the project is read with exact-case name matching, and `--apply` deletes before it writes, so a template rename that only changes case (`Tool.mjs` to `tool.mjs`) ends with the new name instead of deleting the file.
+- **Targets are checked before any write:** a symbolic link anywhere on a target path (a write would leave the project), a directory where the template has a file, or a file where it needs a directory all stop the run with exit 2 and nothing written.
+- **Known limits (deferred):** a CRLF checkout (`core.autocrlf`) shows every changed file as a conflict; gitignored files bypass the dirty-path check; the dirty-path message prints raw `git status` paths; template paths that Windows cannot create (`*?<>|"`, trailing dot, `CON`) are not pre-checked; pre-release versions compare like `staleness.mjs` does (every digit group counts).
