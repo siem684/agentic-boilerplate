@@ -20,7 +20,7 @@
 // remain, 2 the run failed (network, bad lock, dirty paths, not a git repository).
 // GitHub calls use GH_TOKEN, GITHUB_TOKEN or `gh auth token` when available; the token is
 // sent to the GitHub API only. Tests point the API elsewhere with STALENESS_GITHUB_API.
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -183,6 +183,19 @@ const read = (path) => {
   return existsSync(file) && statSync(file).isFile() ? readFileSync(file) : null;
 };
 const plan = planSync({ oldTree, newTree, oldLayers, newLayers, read });
+const applied = force ? plan : plan.filter((i) => !i.reason);
+
+// Before anything is written: the project must be a git repository and every file we would
+// write or delete (and boilerplate.lock) must be committed, so a bad run is one `git checkout` away.
+if (apply) {
+  const git = (...a) => spawnSync("git", a, { cwd: root, encoding: "utf8" });
+  const inside = git("rev-parse", "--is-inside-work-tree");
+  if (inside.status !== 0 || inside.stdout.trim() !== "true") die("this project is not a git repository (or git is not installed); sync --apply needs git so a bad run can be undone");
+  const status = git("status", "--porcelain", "--", ...applied.map((i) => i.path), "boilerplate.lock");
+  if (status.status !== 0) die(`git status failed: ${status.stderr.trim()}`);
+  const dirty = status.stdout.split("\n").filter(Boolean).map((l) => l.slice(3));
+  if (dirty.length) die(`uncommitted changes in files sync would write; commit or stash them first:\n  ${dirty.join("\n  ")}\nNothing was written.`);
+}
 
 // ---- report ----------------------------------------------------------------------------
 
@@ -196,7 +209,7 @@ const groups = [
 for (const [name, items] of groups) {
   if (!items.length) continue;
   console.log(`\n${name} (${items.length})`);
-  for (const i of items) console.log(`  ${i.path}${i.reason ? `  (${i.reason}${force ? `; --force would ${i.action} it` : ""})` : ""}`);
+  for (const i of items) console.log(`  ${i.path}${i.reason ? `  (${i.reason}${force ? `; --force: ${apply ? "" : "would "}${i.action}` : ""})` : ""}`);
 }
 
 if (showDiff) {
@@ -214,8 +227,45 @@ if (showDiff) {
 }
 
 const counts = groups.map(([name, items]) => `${items.length} ${name}`).join(", ");
-console.log(`\n${apply ? "apply" : "dry-run"}: ${counts}.${apply ? "" : " Nothing was written; run again with --apply to write."}`);
-console.log(`release notes: https://github.com/${lock.repo}/releases/tag/v${target}`);
+const notes = `release notes: https://github.com/${lock.repo}/releases/tag/v${target}`;
+if (!apply) {
+  console.log(`\ndry-run: ${counts}. Nothing was written; run again with --apply to write.`);
+  console.log(notes);
+  process.exit(1);
+}
 
-if (apply) die("--apply is not implemented yet");
-process.exit(1);
+// Everything is planned and checked; now write. Parent directories are created, files that
+// were removed are deleted and directories left empty are pruned (never the project root).
+const pruneEmpty = (dir) => {
+  while (dir !== root && dir.startsWith(root) && readdirSync(dir).length === 0) {
+    rmdirSync(dir);
+    dir = dirname(dir);
+  }
+};
+for (const item of applied) {
+  const file = join(root, item.path);
+  try {
+    if (item.action === "delete") {
+      rmSync(file, { force: true });
+      pruneEmpty(dirname(file));
+    } else {
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, newTree.get(item.path));
+    }
+  } catch (e) {
+    die(`failed while writing ${item.path}: ${e.message}\nSome files may have been written; review with \`git status\` and undo with \`git checkout\`.`);
+  }
+}
+const remaining = plan.length - applied.length;
+if (!remaining) {
+  lock.based_on = target;
+  writeFileSync(lockFile, JSON.stringify(lock, null, 2) + "\n");
+}
+console.log(`\napplied ${applied.length} of ${plan.length} change${plan.length === 1 ? "" : "s"}.`);
+if (remaining) {
+  console.log(`${remaining} conflict${remaining === 1 ? "" : "s"} left as they were, so boilerplate.lock still says ${lock.based_on}. Resolve them by hand, or run again with --force to take the template's version.`);
+} else {
+  console.log(`boilerplate.lock now says ${target}.`);
+}
+console.log(`next: review \`git diff\`, run this project's check, then open a pull request.\n${notes}`);
+process.exit(remaining ? 1 : 0);

@@ -3,11 +3,11 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { LAYERS, makeTar, snapshot, writeTree } from "./helpers/fixtures.mjs";
+import { LAYERS, gitCommitAll, gitInit, makeTar, snapshot, writeTree } from "./helpers/fixtures.mjs";
 
 const SCRIPT = fileURLToPath(new URL("../../scripts/sync.mjs", import.meta.url));
 const execFileP = promisify(execFile);
@@ -198,4 +198,136 @@ test("fetch: GH_TOKEN is sent as a bearer token to the API", async () => {
   await runSync(["--root", makeProject(PROJECT)], { env: { GH_TOKEN: "tok123" } });
   assert.ok(seen.length >= 3);
   assert.ok(seen.every((s) => s.auth === "Bearer tok123"));
+});
+
+// ---- --apply and --force ---------------------------------------------------------------
+
+// A committed project plus a template pair (old and new) built from the given file maps.
+function scenario({ base = BASE, next = NEXT, project = base, git = true } = {}) {
+  const root = makeProject(project);
+  if (git) gitInit(root);
+  return { root, from: makeTemplate("0.2.0", next), baseDir: makeTemplate("0.1.0", base) };
+}
+const sync = (s, ...extra) => runSync(["--root", s.root, "--from", s.from, "--base", s.baseDir, ...extra]);
+const lockOf = (root) => JSON.parse(readFileSync(join(root, "boilerplate.lock"), "utf8"));
+const content = (root, path) => readFileSync(join(root, path), "utf8");
+
+test("apply: not a git repository exits 2 and writes nothing", async () => {
+  const s = scenario({ git: false });
+  const before = snapshot(s.root);
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /git/);
+  assert.deepEqual(snapshot(s.root), before);
+});
+
+test("apply: an uncommitted file the plan would update blocks the run before any write", async () => {
+  // edit.mjs equals the old version but is untracked, so git sees it as dirty.
+  const { "scripts/edit.mjs": _untracked, ...tracked } = BASE;
+  const s = scenario({ project: tracked });
+  writeTree(s.root, { "scripts/edit.mjs": BASE["scripts/edit.mjs"] });
+  const before = snapshot(s.root);
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /scripts\/edit\.mjs/);
+  assert.deepEqual(snapshot(s.root), before, "nothing, not even the clean files, may be written");
+});
+
+test("apply: an uncommitted boilerplate.lock blocks", async () => {
+  const s = scenario();
+  writeFileSync(join(s.root, "boilerplate.lock"), JSON.stringify(LOCK) + "\n\n");
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /boilerplate\.lock/);
+});
+
+test("apply: unrelated uncommitted files do not block", async () => {
+  const s = scenario();
+  writeTree(s.root, { "scripts/keep.mjs": "dirty but not in the plan\n", "notes.txt": "x" });
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(content(s.root, "scripts/new.mjs"), "n\n");
+  assert.equal(content(s.root, "scripts/keep.mjs"), "dirty but not in the plan\n");
+});
+
+test("apply: a clean run writes adds and updates, deletes, prunes emptied directories and moves the lock", async () => {
+  const base = { ...BASE, "scripts/old/deep/x.mjs": "x\n" };
+  const s = scenario({ base });
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(content(s.root, "scripts/new.mjs"), "n\n");
+  assert.equal(content(s.root, "scripts/edit.mjs"), "e2\n");
+  assert.equal(content(s.root, "scripts/conf.mjs"), "c2\n");
+  assert.equal(content(s.root, "scripts/keep.mjs"), "k\n");
+  assert.ok(!existsSync(join(s.root, "scripts/gone.mjs")));
+  assert.ok(!existsSync(join(s.root, "scripts/old")), "the emptied directories are pruned");
+  assert.ok(existsSync(join(s.root, "scripts")));
+  assert.deepEqual(lockOf(s.root), { based_on: "0.2.0", repo: "acme/tpl" });
+  assert.match(r.stdout, /pull request|PR/i);
+});
+
+test("apply: conflicts are kept, clean changes are applied, the lock stays behind and the exit is 1", async () => {
+  const s = scenario({ project: PROJECT });
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 1, r.stderr);
+  assert.equal(content(s.root, "scripts/conf.mjs"), "mine\n");
+  assert.equal(content(s.root, "scripts/new.mjs"), "n\n");
+  assert.equal(content(s.root, "scripts/edit.mjs"), "e2\n");
+  assert.equal(lockOf(s.root).based_on, "0.1.0");
+});
+
+test("apply --force: takes the template's version for every kind of conflict and moves the lock", async () => {
+  const base = { ...BASE, "scripts/del.mjs": "d1\n", "scripts/rem.mjs": "r1\n" };
+  const next = { ...NEXT, "scripts/del.mjs": "d2\n" };
+  const { "scripts/del.mjs": _deleted, ...rest } = { ...base, "scripts/conf.mjs": "mine\n", "scripts/rem.mjs": "mine\n" };
+  const s = scenario({ base, next, project: rest });
+  const r = await sync(s, "--apply", "--force");
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(content(s.root, "scripts/conf.mjs"), "c2\n");
+  assert.equal(content(s.root, "scripts/del.mjs"), "d2\n");
+  assert.ok(!existsSync(join(s.root, "scripts/rem.mjs")));
+  assert.equal(lockOf(s.root).based_on, "0.2.0");
+});
+
+test("apply: a CRLF-converted file is a conflict and is kept; --force replaces it", async () => {
+  const base = { "scripts/crlf.mjs": "a\nb\n" };
+  const next = { "scripts/crlf.mjs": "a\nc\n" };
+  const s = scenario({ base, next, project: { "scripts/crlf.mjs": "a\r\nb\r\n" } });
+  const kept = await sync(s, "--apply");
+  assert.equal(kept.code, 1);
+  assert.equal(content(s.root, "scripts/crlf.mjs"), "a\r\nb\r\n");
+  const forced = await sync(s, "--apply", "--force");
+  assert.equal(forced.code, 0, forced.stderr);
+  assert.equal(content(s.root, "scripts/crlf.mjs"), "a\nc\n");
+});
+
+test("apply: files only the project has are untouched, also with --force", async () => {
+  const own = { "scripts/mine.mjs": "mine\n", "tests/mine.test.mjs": "t\n", "src/app.js": "a\n" };
+  const s = scenario({ project: { ...PROJECT, ...own } });
+  const r = await sync(s, "--apply", "--force");
+  assert.equal(r.code, 0, r.stderr);
+  for (const [path, text] of Object.entries(own)) assert.equal(content(s.root, path), text);
+});
+
+test("apply: running it again after committing is a no-op", async () => {
+  const s = scenario();
+  assert.equal((await sync(s, "--apply")).code, 0);
+  gitCommitAll(s.root);
+  const again = await sync(s, "--apply");
+  assert.equal(again.code, 0, again.stderr);
+  assert.match(again.stdout, /already at 0\.2\.0/);
+});
+
+test("apply: a newer version with no file changes only moves the lock", async () => {
+  const s = scenario({ base: BASE, next: BASE });
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(lockOf(s.root).based_on, "0.2.0");
+});
+
+test("dry-run never moves the lock, even for a newer version with no file changes", async () => {
+  const s = scenario({ base: BASE, next: BASE });
+  const r = await sync(s);
+  assert.equal(r.code, 1);
+  assert.equal(lockOf(s.root).based_on, "0.1.0");
 });

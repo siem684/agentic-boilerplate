@@ -1,5 +1,6 @@
 // Shared helpers for the sync tests: a hand-made tar builder (Node has no tar writer),
 // small file-tree helpers and a minimal layers.json.
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -96,4 +97,16 @@ export function snapshot(dir) {
   };
   walk("");
   return out;
+}
+
+// A git repository with everything in `dir` committed (identity and line endings pinned so
+// the tests do not depend on the machine's git config).
+const git = (dir, ...args) => execFileSync("git", ["-c", "user.name=test", "-c", "user.email=test@example.com", "-c", "core.autocrlf=false", ...args], { cwd: dir, stdio: "pipe" });
+export function gitCommitAll(dir) {
+  git(dir, "add", "-A");
+  git(dir, "commit", "-q", "--allow-empty", "-m", "fixture");
+}
+export function gitInit(dir) {
+  git(dir, "init", "-q");
+  gitCommitAll(dir);
 }
