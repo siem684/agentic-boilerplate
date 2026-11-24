@@ -34,4 +34,4 @@ Every file belongs to one layer, listed in [layers.json](layers.json):
 | vendored (`_bmad/`, `bmad-*` and `graphify` skills)                                                  | upstream, version pinned in `vendor.json`, installed per project (see [vendoring](docs/agentic/vendoring.md)) | no, `vendor.mjs verify` checks the pin |
 | project (`src/`, `tests/`, `docs/adr/`, `_bmad/custom`, seeded `CLAUDE.md`/`README.md`)              | the spawned project                                                                                           | never                                  |
 
-`CLAUDE.md` contains `{{PLACEHOLDERS}}` that `init.mjs` fills in.
+`CLAUDE.md` contains `{{PLACEHOLDERS}}` that `init.mjs` fills in. It also deletes the files that are about the template itself (the `template-only` layer in `layers.json`: the template's CI, changelog, design docs and release script). See [ADR 0009](docs/agentic/adr/0009-template-files-in-spawned-projects.md).
