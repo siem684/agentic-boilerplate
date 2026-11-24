@@ -6,6 +6,8 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-24
+
 ### Agentic layer
 - New synced documents in `docs/agentic/`: an index (`README.md`), `architecture.md` (how a run flows from issue to PR, the agents, workflows, context, telemetry, layers), `security-model.md` (who can start the agent, who spends the API key, controls and known gaps), `decisions.md` (one row per ADR with alternatives and status) and `register.md` (what is proven, prescribed, open, and tested only in this template). ADRs 0001-0007 gained an `## Alternatives` section. ADRs 0008-0010 are about the template itself: they moved to the template-only `docs/template/adr/` and are no longer synced. The README is shorter and links the new documents. `tests/agentic/docs-agentic.test.mjs` keeps links and the ADR index from drifting.
 - The CI review job runs the `reviewer` agent (`--agent reviewer`) instead of its own inline prompt, so one file holds the review standard. `reviewer` now has a session mode (runs the self-check commands, prints the review) and a CI mode (no self-check, posts one `<!-- claude-review -->` comment with the loop-protection rule), and its output is markdown with `Blocking` and `Suggestions` headings instead of JSON. CI keeps passing `--model` from `REVIEW_MODEL`, which overrides the agent's own Opus. A new test, `tests/agentic/workflow-agents.test.mjs`, fails when a `claude-code-action` step in any workflow has no `--agent` or names an agent that has no file. [ADR 0002](docs/agentic/adr/0002-model-allocation.md) and the architecture document were updated.
