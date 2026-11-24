@@ -6,24 +6,18 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ## [Unreleased]
 
-### Agentic layer
-- `ci.yml` is now seeded (init fills in `--check`) and no longer synced; `template-ci.yml` runs the template's own tests and is deleted by `init.mjs` in spawned projects.
-- Review job: fork PRs are skipped, the fix-round count is computed in a step, the model is `vars.REVIEW_MODEL`.
-- Actions pinned to commit SHAs; the skills trim is the shared `scripts/trim-skills.mjs`.
-- `dev:deepseek` can no longer fall back to `ANTHROPIC_API_KEY` (ADR 0007).
-- `init.mjs` validates `--check`; `release.mjs` requires the repository root; `telemetry.mjs` tolerates a partial execution file.
-
-**Action required:** replace your `.github/workflows/` files with the template's, then re-apply your check command to `ci.yml`.
-
-## [0.1.0] - 2026-11-23
+## [0.1.0] - 2026-11-24
 
 First release.
 
 ### Agentic layer
 - Agents: triage, qa-tester, fixer and the `claude-dev` orchestrator.
 - Guardrails: `protect-paths` hook, project `settings.json` permission baseline, CODEOWNERS template, issue templates.
-- Workflows: agent runner and CI review.
-- Scripts: `init`, `check`, `validate`, `vendor` (list, verify), `telemetry`, `release`.
+- Workflows: agent runner and CI review. `ci.yml` is seeded by `init` (`--check`) and not synced; `template-ci.yml` runs the template's own tests (on Node 22) and is deleted by `init.mjs` in spawned projects. The `check` job is skipped in the template repository itself.
+- Review job: fork PRs are skipped, the fix-round count is computed in a step, the model is `vars.REVIEW_MODEL`.
+- Actions are pinned to commit SHAs; the skills trim is the shared `scripts/trim-skills.mjs`.
+- `dev:deepseek` cannot fall back to `ANTHROPIC_API_KEY` (ADR 0007).
+- Scripts: `init` (validates `--check`), `check`, `validate`, `vendor` (list, verify), `telemetry` (tolerates a partial execution file), `release` (requires the repository root).
 - ADRs 0001-0008 in `docs/agentic/adr/`.
 
 ### Vendored
