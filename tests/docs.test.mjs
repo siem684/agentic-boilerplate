@@ -87,4 +87,6 @@ test("README.md links the synced docs index and the status line is current", () 
   const status = read("README.md").split("\n").find((l) => l.startsWith("**Status:"));
   assert.ok(status, "README.md has no status line");
   assert.ok(!status.includes("milestones 1-7"), "the status line is stale");
+  assert.ok(!/not yet public|under construction|1-8 of 9/.test(status), "the status line still says the template is not finished or not public");
+  assert.ok(/\bpublic\b/.test(status), "the status line does not say the template is public");
 });
