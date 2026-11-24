@@ -6,6 +6,9 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ## [Unreleased]
 
+### Agentic layer
+- `docs/agentic/register.md` and `decisions.md`: the two items marked "to confirm" (budget caps under telemetry and guardrails, and the group of scripts tested only in this template) are confirmed by the owner. The wording is otherwise unchanged. `tests/docs.test.mjs` fails if a synced document is marked "to confirm" again.
+
 ### Template-only
 - New `LICENSE` (MIT) for the template repository. It is in the `template-only` layer, so `init.mjs` removes it in a spawned project: choose your own licence there. The README status line names the licence, and `tests/docs.test.mjs` checks both.
 

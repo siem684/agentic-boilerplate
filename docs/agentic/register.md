@@ -11,7 +11,7 @@ How to read the groups: **proven** means used in other projects; **prescribed, n
 | Component | Claim | Evidence |
 |---|---|---|
 | Agents | The agent setup (a dev orchestrator with triage, test and fix subagents) is used in other projects. | The owner's statement that they were used in other projects. Whether this covers each of the five agent files, including `reviewer`, is not recorded. |
-| Telemetry | Per-run cost and usage are recorded and visible. | The owner's statement. Budget caps are counted here as part of telemetry and guardrails: **to confirm** during review. They alert after a run and do not stop spending ([ADR 0003](adr/0003-budget-cap-and-loop-limits.md)). |
+| Telemetry | Per-run cost and usage are recorded and visible. | The owner's statement, reviewed and confirmed by the owner on 2026-11-24. Budget caps are counted here as part of telemetry and guardrails. They alert after a run and do not stop spending ([ADR 0003](adr/0003-budget-cap-and-loop-limits.md)). |
 | Guardrails | Protected paths, deny rules, the hook and the human merge keep agents inside their lane ([ADR 0004](adr/0004-protected-paths.md)). | The owner's statement. The limits are in the [security model](security-model.md). |
 | ADR checking | Reviews check changes against the project's decisions in `docs/adr/`. | The owner's statement. |
 
@@ -32,7 +32,7 @@ How to read the groups: **proven** means used in other projects; **prescribed, n
 
 ## Built here, tested here only
 
-`init`, `check`, `vendor`, `staleness`, `sync`, `release`, `run` and `report` are scripts built in this template. They are covered by this repository's tests, including a test that spawns a throwaway project, and have not yet been run on a real spawned project. `release` exists only in the template repository. The decisions about versioning, which template files a spawned project keeps and why staleness is checked on request are ADRs 0008 to 0010, also in the template repository. This group is the template author's addition to the owner's statement and is **to confirm** during review.
+`init`, `check`, `vendor`, `staleness`, `sync`, `release`, `run` and `report` are scripts built in this template. They are covered by this repository's tests, including a test that spawns a throwaway project, and have not yet been run on a real spawned project. `release` exists only in the template repository. The decisions about versioning, which template files a spawned project keeps and why staleness is checked on request are ADRs 0008 to 0010, also in the template repository. This group is the template author's addition to the owner's statement; the owner reviewed and confirmed it on 2026-11-24.
 
 | Component | Claim | Evidence |
 |---|---|---|
