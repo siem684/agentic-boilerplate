@@ -5,7 +5,7 @@
     "agentic": {
       "owner": "template",
       "sync": true,
-      "description": "Owned by this template. sync.mjs may overwrite these paths in a spawned project. Exceptions: ci.yml is seeded (init fills in the project's check command) and template-ci.yml exists only in the template.",
+      "description": "Owned by this template. sync.mjs may overwrite these paths in a spawned project. Exceptions: ci.yml is seeded (init fills in the project's check command); template-ci.yml and release.mjs exist only in the template.",
       "paths": [
         ".claude/agents/**",
         ".claude/hooks/**",
@@ -18,7 +18,8 @@
       ],
       "exclude": [
         ".github/workflows/ci.yml",
-        ".github/workflows/template-ci.yml"
+        ".github/workflows/template-ci.yml",
+        "scripts/release.mjs"
       ]
     },
     "vendored": {
@@ -45,6 +46,10 @@
         "src/**",
         "tests/**"
       ],
+      "exclude": [
+        "tests/release.test.mjs",
+        "tests/agents.test.mjs"
+      ],
       "seeded": {
         "description": "Copied once at spawn time, then owned by the project. Sync never overwrites them.",
         "paths": [
@@ -60,9 +65,14 @@
     "template-only": {
       "owner": "template",
       "sync": false,
-      "description": "Exists only in the template repository. init.mjs deletes these in a spawned project; sync never adds them.",
+      "description": "Exists only in the template repository. init.mjs reads this list and deletes these in a spawned project (`dir/**` removes the whole directory); sync never adds them. Add a path here whenever a file is about the template itself rather than about a project built from it.",
       "paths": [
-        ".github/workflows/template-ci.yml"
+        ".github/workflows/template-ci.yml",
+        "CHANGELOG.md",
+        "docs/superpowers/**",
+        "scripts/release.mjs",
+        "tests/release.test.mjs",
+        "tests/agents.test.mjs"
       ]
     }
   }

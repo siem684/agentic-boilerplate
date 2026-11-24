@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -15,7 +15,12 @@ function spawned() {
   writeFileSync(join(root, ".github/CODEOWNERS"), "/.github/ {{OWNER}}\n/docs/adr/ {{OWNER}}\n");
   writeFileSync(join(root, ".github/workflows/ci.yml"), "run: {{CHECK_COMMANDS}}\n");
   writeFileSync(join(root, "README.md"), "Uses `{{PLACEHOLDERS}}` in docs.\n");
+  writeLayers(root, [".github/workflows/template-ci.yml"]);
   return root;
+}
+// init reads the template-only paths from layers.json.
+function writeLayers(root, templateOnly) {
+  writeFileSync(join(root, "layers.json"), JSON.stringify({ layers: { "template-only": { paths: templateOnly } } }));
 }
 const run = (root, ...args) =>
   spawnSync(process.execPath, [SCRIPT, "--root", root, ...args], { encoding: "utf8" });
@@ -84,6 +89,55 @@ test("init still succeeds when there is no template-ci.yml (re-run)", () => {
   const root = spawned();
   assert.equal(run(root, ...INIT).status, 0);
   assert.equal(run(root, ...INIT).status, 0);
+  rmSync(root, { recursive: true });
+});
+
+test("init removes every template-only path listed in layers.json, files and directories", () => {
+  const root = spawned();
+  writeLayers(root, ["CHANGELOG.md", "docs/superpowers/**", "scripts/release.mjs"]);
+  mkdirSync(join(root, "docs/superpowers/specs"), { recursive: true });
+  mkdirSync(join(root, "docs/adr"), { recursive: true });
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  writeFileSync(join(root, "CHANGELOG.md"), "# Changelog\n");
+  writeFileSync(join(root, "docs/superpowers/specs/design.md"), "x");
+  writeFileSync(join(root, "docs/adr/0001.md"), "keep");
+  writeFileSync(join(root, "scripts/release.mjs"), "x");
+  writeFileSync(join(root, "scripts/init.mjs"), "keep");
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 0, r.stderr);
+  for (const gone of ["CHANGELOG.md", "docs/superpowers", "scripts/release.mjs"]) {
+    assert.equal(existsSync(join(root, gone)), false, `${gone} should be removed`);
+  }
+  assert.equal(read(root, "docs/adr/0001.md"), "keep");
+  assert.equal(read(root, "scripts/init.mjs"), "keep");
+  assert.match(r.stdout, /removed CHANGELOG\.md/);
+  assert.match(r.stdout, /removed docs\/superpowers\/\*\*/);
+  rmSync(root, { recursive: true });
+});
+
+test("init refuses a template-only path that points outside the project and removes nothing", () => {
+  const root = spawned();
+  const outside = mkdtempSync(join(tmpdir(), "init-outside-"));
+  writeFileSync(join(outside, "precious.txt"), "keep");
+  writeLayers(root, [".github/workflows/template-ci.yml", `../${basename(outside)}/**`]);
+  writeFileSync(join(root, ".github/workflows/template-ci.yml"), "x");
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /outside the project/);
+  assert.equal(read(outside, "precious.txt"), "keep");
+  assert.equal(existsSync(join(root, ".github/workflows/template-ci.yml")), true, "must not half-apply");
+  assert.match(read(root, "CLAUDE.md"), /\{\{PROJECT_NAME\}\}/, "must not half-apply");
+  rmSync(root, { recursive: true });
+  rmSync(outside, { recursive: true });
+});
+
+test("init warns and carries on when layers.json is missing", () => {
+  const root = spawned();
+  rmSync(join(root, "layers.json"));
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /layers\.json/);
+  assert.equal(read(root, "CLAUDE.md"), "# Demo\n\nA demo app.\n\nRun: npm test\n");
   rmSync(root, { recursive: true });
 });
 

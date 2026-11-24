@@ -26,6 +26,10 @@ Code, comments, commits, PR text and docs are in English.
 6. **Independent review.** The CI `review` job posts a review. Fix blocking points once (at most one automatic round); if unsure, ask in the PR.
 7. **A human merges.**
 
+## Tests
+The self-check commands are in step 4 above. New tests go next to the existing ones.
+<!-- Project-specific: the test directory, file naming, and how to run a single test. -->
+
 ## Knowledge graph
 When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else. If `graphify-out/` exists, treat questions about the codebase's architecture or file relationships as a graphify query first.
 

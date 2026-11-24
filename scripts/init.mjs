@@ -9,8 +9,8 @@
 // Options: --root <dir> (default: current directory); --offline skips the `gh` lookup.
 // Afterwards run `node scripts/check.mjs` to see what is still missing.
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { PLACEHOLDER_FILES, TEMPLATE_ONLY_FILES } from "./placeholders.mjs";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { PLACEHOLDER_FILES } from "./placeholders.mjs";
 import { validateInputs, ownerExists } from "./validate.mjs";
 
 const args = process.argv.slice(2);
@@ -47,6 +47,25 @@ if (!offline) {
 }
 
 // Compute everything first so a failure cannot leave a half-initialised repo.
+// Template-only paths come from layers.json ("template-only" layer): files that only
+// make sense in the template repository. `dir/**` means the whole directory.
+const templateOnly = [];
+const layersFile = join(root, "layers.json");
+if (!existsSync(layersFile)) {
+  console.warn("warning: layers.json not found; template-only files were not removed");
+} else {
+  const paths = JSON.parse(readFileSync(layersFile, "utf8")).layers?.["template-only"]?.paths ?? [];
+  for (const pattern of paths) {
+    const isDir = pattern.endsWith("/**");
+    const target = resolve(root, isDir ? pattern.slice(0, -3) : pattern);
+    const rel = relative(root, target);
+    if (!rel || rel.startsWith("..") || isAbsolute(rel)) {
+      console.error(`layers.json: template-only path "${pattern}" is outside the project`);
+      process.exit(1);
+    }
+    templateOnly.push([pattern, target, isDir]);
+  }
+}
 const out = [];
 for (const f of PLACEHOLDER_FILES.filter((f) => existsSync(join(root, f)))) {
   const before = readFileSync(join(root, f), "utf8");
@@ -58,10 +77,9 @@ for (const [f, text] of out) {
   writeFileSync(join(root, f), text);
   console.log(`updated ${f}`);
 }
-// Files that only make sense in the template repository itself.
-for (const f of TEMPLATE_ONLY_FILES.filter((f) => existsSync(join(root, f)))) {
-  rmSync(join(root, f));
-  console.log(`removed ${f}`);
+for (const [pattern, target, isDir] of templateOnly.filter(([, target]) => existsSync(target))) {
+  rmSync(target, { recursive: isDir, force: true });
+  console.log(`removed ${pattern}`);
 }
 if (!out.length) console.log("nothing to do: no placeholders left");
 console.log("Next: node scripts/check.mjs");

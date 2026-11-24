@@ -6,6 +6,14 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 
 ## [Unreleased]
 
+### Agentic layer
+- `protect-paths` hook: path matching is now case-insensitive, `NotebookEdit` is checked (`notebook_path`), and `Bash` commands that write to a protected path are blocked on a best-effort basis. The `settings.json` hook matcher is now `Edit|Write|MultiEdit|NotebookEdit|Bash`. Residual risks (interpreter writes, unprotected `scripts/`) are documented in ADR 0004. Tests in `tests/protect-paths.test.mjs`.
+- `claude-dev` no longer hard-codes `master` as the PR base: it runs `gh pr create` without `--base`, so PRs target the repository's default branch (works for `main` and `master`). Guard test in `tests/agents.test.mjs`.
+- `qa-tester` no longer depends on a CLAUDE.md section that did not exist: it follows a Tests section if there is one and otherwise matches the existing tests. The seeded `CLAUDE.md` gains a `## Tests` section. A guard test checks that every "X section of CLAUDE.md" an agent mentions exists.
+- `init.mjs` now removes every path in the `template-only` layer of `layers.json` (read from there instead of a second list in `placeholders.mjs`): besides `template-ci.yml` that is now `CHANGELOG.md`, `docs/superpowers/**`, `scripts/release.mjs`, `tests/release.test.mjs` and `tests/agents.test.mjs`. A path outside the project is refused. `scripts/release.mjs` is excluded from the synced agentic layer. The template's tests stay in `tests/`; moving them into a synced directory is planned with `sync.mjs` (known gap in [ADR 0009](docs/agentic/adr/0009-template-files-in-spawned-projects.md)). Tests in `tests/init.test.mjs` and `tests/layers.test.mjs`.
+
+**Action required:** (1) after sync, review that the hook still lets your own Bash commands through: a command that names `.claude/`, `_bmad/`, `_bmad-output/` or `.github/workflows/` together with a write (for example `cp`, `rm`, `>`) is now blocked, so do those by hand. (2) Add a `## Tests` section to your CLAUDE.md (it is not synced) naming your test directory, file naming and how to run a single test. (3) Projects spawned before this change can delete `CHANGELOG.md`, `docs/superpowers/`, `scripts/release.mjs`, `tests/release.test.mjs` and `tests/agents.test.mjs` if they carry them.
+
 ## [0.1.0] - 2026-11-24
 
 First release.
