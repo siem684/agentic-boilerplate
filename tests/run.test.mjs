@@ -140,3 +140,8 @@ test("an entry without a script file exits 1 with a message", () => {
   assert.ok(r.stderr.includes("release"));
   assert.ok(!r.stderr.includes("Error:"), "no stack trace");
 });
+
+test("README links the dispatcher", () => {
+  const readme = readFileSync(fileURLToPath(new URL("../README.md", import.meta.url)), "utf8");
+  assert.ok(readme.includes("node scripts/run.mjs"));
+});
