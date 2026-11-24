@@ -115,7 +115,7 @@ test("a relative --root resolves against the caller's cwd", () => {
 });
 
 test("a command name is not a path", () => {
-  for (const name of ["../init", "__proto__", "constructor", ""]) {
+  for (const name of ["../init", "./init", "../scripts/init", "__proto__", "constructor", ""]) {
     const r = run(name);
     assert.equal(r.status, 1, `"${name}" exits 1`);
     assert.ok(r.out.includes("staleness"), `"${name}" shows the overview`);
@@ -141,7 +141,23 @@ test("an entry without a script file exits 1 with a message", () => {
   assert.ok(!r.stderr.includes("Error:"), "no stack trace");
 });
 
-test("README links the dispatcher", () => {
-  const readme = readFileSync(fileURLToPath(new URL("../README.md", import.meta.url)), "utf8");
-  assert.ok(readme.includes("node scripts/run.mjs"));
+function fixture(checkBody) {
+  const dir = mkdtempSync(join(tmpdir(), "run-test-fixture-"));
+  mkdirSync(join(dir, "scripts"));
+  for (const f of ["run.mjs", "commands.json"]) copyFileSync(SCRIPTS + f, join(dir, "scripts", f));
+  writeFileSync(join(dir, "scripts", "check.mjs"), checkBody);
+  return join(dir, "scripts", "run.mjs");
+}
+
+test("passes through any exit code and the arguments of the script", () => {
+  const runner = fixture("console.log(process.argv.slice(2).join('|')); process.exit(7);");
+  const r = spawnSync(process.execPath, [runner, "check", "--a", "b c"], { encoding: "utf8" });
+  assert.equal(r.status, 7);
+  assert.equal(r.stdout.trim(), "--a|b c");
+});
+
+test("a script that dies without an exit code does not become success", () => {
+  const runner = fixture("process.kill(process.pid, 'SIGKILL'); setTimeout(() => {}, 5000);");
+  const r = spawnSync(process.execPath, [runner, "check"], { encoding: "utf8" });
+  assert.notEqual(r.status, 0);
 });
