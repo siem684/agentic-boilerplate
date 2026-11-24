@@ -20,6 +20,7 @@ How to read the groups: **proven** means used in other projects; **prescribed, n
 | Component | Claim | Evidence | How to help |
 |---|---|---|---|
 | Model allocation | Opus for the dev session and fixer, Sonnet for tests and review, Haiku for triage ([ADR 0002](adr/0002-model-allocation.md)). | Not exercised. The models are set in the agent files; the inference choices are not tuned. | Report a run with a different allocation: what ran, on what, and the cost from `node scripts/report.mjs`. |
+| One review standard for CI and sessions | The CI review job runs the `reviewer` agent, so a person and CI are judged by the same rules; CI runs a lighter mode on `REVIEW_MODEL` ([ADR 0002](adr/0002-model-allocation.md)). | Not exercised in CI. That `--model` overrides the agent's model was checked locally with Claude Code 2.1.318, not in the action's bundled version. | Run a review on a PR from a `claude/` branch and report the model in the telemetry, the cost, and whether the comment has the expected form. |
 | Non-Claude models via a base URL | The label `dev:deepseek` runs the dev session on another model ([ADR 0007](adr/0007-model-agnostic-base-url.md)). | Pilot. Whether the action honours `ANTHROPIC_BASE_URL` set through `env:` is unverified. | Run it once and report the outcome, including a failure. If it does not work, the ADR names the fallback to try. |
 
 ## Open for improvement
