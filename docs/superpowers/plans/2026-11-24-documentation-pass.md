@@ -141,7 +141,7 @@ Failure modes the spec implies that no single task's main tests cover; each has 
 
 **Files:** Modify `docs/superpowers/specs/2026-11-23-boilerplate-design.md`, `CHANGELOG.md`. Test: `tests/docs.test.mjs`.
 
-- [ ] **Step 1: Write failing test** `no document names the original project`: every `.md` below `docs/` plus `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md` and `CLAUDE.md` does not match `/nissimo/i`. (This test file is outside the scanned set.)
+- [ ] **Step 1: Write failing test** `no document names the original project`: every `.md` below `docs/` plus `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md` and `CLAUDE.md` does not contain the original project's name (the test file holds the pattern and is outside the scanned set).
 - [ ] **Step 2:** Run; expect FAIL on the main spec (three mentions).
 - [ ] **Step 3:** Reword the three mentions in the main spec: the setup is "proven in other projects", with the sentence rewritten where needed. Update its status (milestones 1-8 built, 9 to do) and the milestone 8 line. Add a CHANGELOG `Unreleased` entry under "Agentic layer": new synced docs (architecture, security model, decisions, register), ADRs 0008-0010 moved to the template-only `docs/template/adr/` and no longer synced, README links; and a template-only line for `CONTRIBUTING.md`, `SECURITY.md`, `docs/template/`. **Action required:** projects spawned earlier delete their copies of `docs/agentic/adr/0008-*`, `0009-*`, `0010-*`.
 - [ ] **Step 4:** Run the suite; expect PASS.

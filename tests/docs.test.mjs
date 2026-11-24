@@ -53,6 +53,15 @@ test("CONTRIBUTING.md, SECURITY.md and the fork guide exist and say what they mu
   assert.ok(resolved("SECURITY.md").includes("docs/agentic/security-model.md"));
 });
 
+test("no document names the original project", () => {
+  const files = [
+    ...markdownFiles(root, "docs"),
+    ...["README.md", "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md", "CLAUDE.md"],
+  ];
+  assert.ok(files.length > 10);
+  for (const f of files) assert.doesNotMatch(read(f), /nissimo/i, `${f} names the original project`);
+});
+
 test("README.md links the synced docs index and the status line is current", () => {
   const links = resolved("README.md");
   for (const f of ["docs/agentic/README.md", "docs/agentic/security-model.md", "docs/agentic/register.md"]) {
