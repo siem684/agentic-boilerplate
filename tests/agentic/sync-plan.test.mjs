@@ -63,7 +63,7 @@ test("removed by the template and already absent from the project: nothing", () 
 
 test("paths outside the agentic layer are never planned", () => {
   const next = { "src/app.js": "1", "CLAUDE.md": "1", "scripts/release.mjs": "1", "template.json": "1" };
-  assert.deepEqual(plan({ old: { "src/old.js": "1" }, next }), []);
+  assert.deepEqual(plan({ old: { "src/old.js": "1" }, next, project: { "src/old.js": "1" } }), []);
 });
 
 test("ownership comes from the new tree's layers, or the old tree's for removed files", () => {

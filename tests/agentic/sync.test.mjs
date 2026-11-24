@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -330,4 +330,99 @@ test("dry-run never moves the lock, even for a newer version with no file change
   const r = await sync(s);
   assert.equal(r.code, 1);
   assert.equal(lockOf(s.root).based_on, "0.1.0");
+});
+
+// ---- review fixes: case-only renames, type clashes, symlinks, empty plans ---------------
+
+test("apply: a case-only rename in the template ends with the new name, not with the file deleted", async () => {
+  const s = scenario({ base: { "scripts/Tool.mjs": "t\n" }, next: { "scripts/tool.mjs": "t\n" } });
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 0, r.stderr);
+  assert.deepEqual(readdirSync(join(s.root, "scripts")), ["tool.mjs"]);
+  assert.equal(content(s.root, "scripts/tool.mjs"), "t\n");
+});
+
+test("apply: a directory where the template has a file stops the run before any write", async () => {
+  const s = scenario({
+    base: { "scripts/keep.mjs": "k\n" },
+    next: { "scripts/keep.mjs": "k\n", "scripts/a.mjs": "a\n", "scripts/b.mjs": "b\n" },
+    project: { "scripts/keep.mjs": "k\n", "scripts/b.mjs/inner.txt": "x\n" },
+  });
+  const before = snapshot(s.root);
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /scripts\/b\.mjs/);
+  assert.deepEqual(snapshot(s.root), before, "scripts/a.mjs must not have been written");
+});
+
+test("apply: a file where the template needs a directory stops the run before any write", async () => {
+  const s = scenario({
+    base: { "scripts/keep.mjs": "k\n" },
+    next: { "scripts/keep.mjs": "k\n", "scripts/a.mjs": "a\n", "scripts/lib/x.mjs": "x\n" },
+    project: { "scripts/keep.mjs": "k\n", "scripts/lib": "a file\n" },
+  });
+  const before = snapshot(s.root);
+  const r = await sync(s, "--apply");
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /scripts\/lib/);
+  assert.deepEqual(snapshot(s.root), before);
+});
+
+// Creating symlinks needs a privilege on some Windows setups; the tests skip when it is missing.
+function trySymlink(t, target, path, type) {
+  try {
+    symlinkSync(target, path, type);
+    return true;
+  } catch (e) {
+    t.skip(`cannot create symlinks here: ${e.code}`);
+    return false;
+  }
+}
+
+test("apply: a symlinked file in the project is never written through", async (t) => {
+  const outside = makeProject({ "x.mjs": "e1\n" }, null);
+  const { "scripts/edit.mjs": _link, ...rest } = BASE;
+  const root = makeProject(rest);
+  if (!trySymlink(t, join(outside, "x.mjs"), join(root, "scripts/edit.mjs"))) return;
+  gitInit(root);
+  const r = await runSync(["--root", root, "--from", makeTemplate("0.2.0", NEXT), "--base", makeTemplate("0.1.0", BASE), "--apply"]);
+  assert.equal(r.code, 2, r.stdout);
+  assert.match(r.stderr, /symbolic link/);
+  assert.equal(content(outside, "x.mjs"), "e1\n");
+});
+
+test("apply: a symlinked parent directory in the project is never written through", async (t) => {
+  const outside = makeProject({}, null);
+  const root = makeProject({ "scripts/keep.mjs": "k\n" });
+  mkdirSync(join(root, "tests"), { recursive: true });
+  if (!trySymlink(t, outside, join(root, "tests/agentic"), "junction")) return;
+  gitInit(root);
+  const from = makeTemplate("0.2.0", { "scripts/keep.mjs": "k\n", "tests/agentic/new.test.mjs": "t\n" });
+  const r = await runSync(["--root", root, "--from", from, "--base", makeTemplate("0.1.0", { "scripts/keep.mjs": "k\n" }), "--apply"]);
+  assert.equal(r.code, 2, r.stdout);
+  assert.deepEqual(readdirSync(outside), ["boilerplate.lock"].filter((f) => existsSync(join(outside, f))), "nothing may land in the linked directory");
+});
+
+test("dry-run with a newer version and no file changes says that only boilerplate.lock would move", async () => {
+  const s = scenario({ base: BASE, next: BASE });
+  const r = await sync(s);
+  assert.equal(r.code, 1);
+  assert.match(r.stdout, /only boilerplate\.lock/);
+});
+
+test("apply: a failed fetch stops before the git check and any write", async () => {
+  stubRelease();
+  delete routes["/gh/repos/acme/tpl/tarball/v0.2.0"];
+  const root = makeProject(PROJECT);
+  gitInit(root);
+  const before = snapshot(root);
+  const r = await runSync(["--root", root, "--apply"]);
+  assert.equal(r.code, 2);
+  assert.deepEqual(snapshot(root), before);
+});
+
+test("an unreachable GitHub exits 2 with a message about the host", async () => {
+  const r = await runSync(["--root", makeProject(PROJECT), "--to", "0.2.0"], { env: { STALENESS_GITHUB_API: "http://127.0.0.1:9/gh" } });
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /127\.0\.0\.1/);
 });

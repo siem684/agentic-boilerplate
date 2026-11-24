@@ -11,13 +11,8 @@ const INIT = fileURLToPath(new URL("../../scripts/init.mjs", import.meta.url));
 const SYNC = fileURLToPath(new URL("../../scripts/sync.mjs", import.meta.url));
 const node = (script, ...args) => spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
 
-const LAYERS = JSON.stringify({
-  layers: {
-    agentic: { paths: ["scripts/**", "layers.json"] },
-    project: { paths: ["src/**", "boilerplate.lock"] },
-    "template-only": { paths: ["template.json"] },
-  },
-});
+// The real layers.json: its exclusions and seeded rules are what this test is about.
+const LAYERS = readFileSync(fileURLToPath(new URL("../../layers.json", import.meta.url)), "utf8");
 function template(version, files) {
   const dir = mkdtempSync(join(tmpdir(), "sync-spawn-"));
   writeTree(dir, {
@@ -33,7 +28,13 @@ function template(version, files) {
 
 test("spawn with init, work in the project, then sync from a template one version ahead", () => {
   const v1 = template("0.1.0", { "scripts/tool.mjs": "// v1\n" });
-  const v2 = template("0.2.0", { "scripts/tool.mjs": "// v2\n", "scripts/extra.mjs": "// new\n" });
+  const v2 = template("0.2.0", {
+    "scripts/tool.mjs": "// v2\n",
+    "scripts/extra.mjs": "// new\n",
+    "scripts/release.mjs": "// template-only\n",
+    "CLAUDE.md": "# {{PROJECT_NAME}}\n\nThe template changed this seeded file.\n",
+    ".github/workflows/ci.yml": "run: the template changed this seeded file\n",
+  });
 
   // The project is a copy of v1, initialised the documented way.
   const project = mkdtempSync(join(tmpdir(), "sync-spawn-project-"));
@@ -59,4 +60,5 @@ test("spawn with init, work in the project, then sync from a template one versio
   assert.equal(after[".github/workflows/ci.yml"], before[".github/workflows/ci.yml"]);
   assert.deepEqual(JSON.parse(after["boilerplate.lock"]), { based_on: "0.2.0", repo: "acme/tpl" });
   assert.ok(!("template.json" in after), "sync never adds template-only files");
+  assert.ok(!("scripts/release.mjs" in after), "sync respects the exclude list of the agentic layer");
 });

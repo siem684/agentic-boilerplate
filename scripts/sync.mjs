@@ -20,7 +20,7 @@
 // remain, 2 the run failed (network, bad lock, dirty paths, not a git repository).
 // GitHub calls use GH_TOKEN, GITHUB_TOKEN or `gh auth token` when available; the token is
 // sent to the GitHub API only. Tests point the API elsewhere with STALENESS_GITHUB_API.
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, lstatSync, readdirSync, rmSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -178,9 +178,27 @@ const oldTree = baseDir ? readDir(baseDir) : await fetchTree(lock.repo, lock.bas
 const newTree = fromDir ? readDir(fromDir) : await fetchTree(lock.repo, target);
 const oldLayers = layersOf(oldTree, `v${lock.based_on}`);
 const newLayers = layersOf(newTree, `v${target}`);
+// The project's bytes for a path, or null when it is absent. Names are matched exactly, so on
+// a case-insensitive filesystem `scripts/tool.mjs` does not find `scripts/Tool.mjs`: a
+// case-only rename in the template is then a delete plus an add, not a no-op.
+const listings = new Map();
+const entries = (dir) => {
+  if (!listings.has(dir)) {
+    try {
+      listings.set(dir, new Set(readdirSync(dir)));
+    } catch {
+      listings.set(dir, new Set());
+    }
+  }
+  return listings.get(dir);
+};
 const read = (path) => {
-  const file = join(root, path);
-  return existsSync(file) && statSync(file).isFile() ? readFileSync(file) : null;
+  let file = root;
+  for (const segment of path.split("/")) {
+    if (!entries(file).has(segment)) return null;
+    file = join(file, segment);
+  }
+  return statSync(file).isFile() ? readFileSync(file) : null;
 };
 const plan = planSync({ oldTree, newTree, oldLayers, newLayers, read });
 const applied = force ? plan : plan.filter((i) => !i.reason);
@@ -195,6 +213,30 @@ if (apply) {
   if (status.status !== 0) die(`git status failed: ${status.stderr.trim()}`);
   const dirty = status.stdout.split("\n").filter(Boolean).map((l) => l.slice(3));
   if (dirty.length) die(`uncommitted changes in files sync would write; commit or stash them first:\n  ${dirty.join("\n  ")}\nNothing was written.`);
+
+  // Every target must be writable as planned: no symbolic link on the way (a write would land
+  // outside the project), no directory where a file goes, no file where a directory goes.
+  const problems = [];
+  for (const { path } of applied) {
+    const segments = path.split("/");
+    let current = root;
+    for (let i = 0; i < segments.length; i++) {
+      current = join(current, segments[i]);
+      let stat;
+      try {
+        stat = lstatSync(current);
+      } catch {
+        break; // nothing there yet, so nothing can be in the way
+      }
+      const here = segments.slice(0, i + 1).join("/");
+      if (stat.isSymbolicLink()) problems.push(`${here} is a symbolic link; sync does not write through links`);
+      else if (i < segments.length - 1 && !stat.isDirectory()) problems.push(`${here} is a file in your project, but the template needs a directory there`);
+      else if (i === segments.length - 1 && stat.isDirectory()) problems.push(`${here} is a directory in your project, but the template has a file there`);
+      else continue;
+      break;
+    }
+  }
+  if (problems.length) die(`cannot write these paths as planned:\n  ${problems.join("\n  ")}\nNothing was written.`);
 }
 
 // ---- report ----------------------------------------------------------------------------
@@ -229,6 +271,7 @@ if (showDiff) {
 const counts = groups.map(([name, items]) => `${items.length} ${name}`).join(", ");
 const notes = `release notes: https://github.com/${lock.repo}/releases/tag/v${target}`;
 if (!apply) {
+  if (!plan.length) console.log(`\nno files change; only boilerplate.lock would move to ${target}`);
   console.log(`\ndry-run: ${counts}. Nothing was written; run again with --apply to write.`);
   console.log(notes);
   process.exit(1);
@@ -242,7 +285,9 @@ const pruneEmpty = (dir) => {
     dir = dirname(dir);
   }
 };
-for (const item of applied) {
+// Deletes first: on a case-insensitive filesystem a rename that only changes case would
+// otherwise write the new name and then delete the file again.
+for (const item of [...applied.filter((i) => i.action === "delete"), ...applied.filter((i) => i.action !== "delete")]) {
   const file = join(root, item.path);
   try {
     if (item.action === "delete") {
