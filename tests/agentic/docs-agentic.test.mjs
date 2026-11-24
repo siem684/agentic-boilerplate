@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { owns } from "../../scripts/layers.mjs";
@@ -41,4 +41,20 @@ test("docs/agentic never links to a template-only path", () => {
       }
     }
   }
+});
+
+test("docs/agentic/README.md exists and links every other top-level doc in docs/agentic/", () => {
+  assert.ok(existsSync(`${root}docs/agentic/README.md`), "docs/agentic/README.md is missing");
+  const linked = resolved("docs/agentic/README.md");
+  const topLevel = markdownFiles(root, "docs/agentic").filter((f) => f.split("/").length === 3 && f !== "docs/agentic/README.md");
+  assert.ok(topLevel.length > 0);
+  for (const doc of topLevel) assert.ok(linked.includes(doc), `docs/agentic/README.md does not link ${doc}`);
+});
+
+test("architecture.md names every agent and workflow", () => {
+  assert.ok(existsSync(`${root}docs/agentic/architecture.md`), "docs/agentic/architecture.md is missing");
+  const text = read("docs/agentic/architecture.md");
+  const agents = readdirSync(`${root}.claude/agents`).filter((f) => f.endsWith(".md")).map((f) => f.replace(/\.md$/, ""));
+  assert.ok(agents.length >= 5);
+  for (const name of [...agents, "claude.yml", "ci.yml"]) assert.ok(text.includes(name), `architecture.md does not mention ${name}`);
 });
