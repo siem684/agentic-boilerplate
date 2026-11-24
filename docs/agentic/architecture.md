@@ -36,7 +36,7 @@ a human reads the PR and merges
 
 ## Agents
 
-All agents live in `.claude/agents/` ([ADR 0001](adr/0001-runtime-claude-code-action.md)) and are protected paths: a human edits them.
+The template's agents are files in `.claude/agents/` ([ADR 0001](adr/0001-runtime-claude-code-action.md)) and are protected paths: a human edits them. Two things are not defined there. Claude Code has built-in subagents of its own (such as general-purpose, Explore and Plan), which exist in every session. And the CI review job is a main session configured by an inline prompt in `ci.yml`, not by an agent file (see below). `claude-code-action` ships no agents of its own.
 
 | Agent | Role | Model | Tools |
 |---|---|---|---|
