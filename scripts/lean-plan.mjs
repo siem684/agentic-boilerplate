@@ -116,3 +116,115 @@ export function buildItems({ context, userPlugins, catalog }) {
   const tools = (catalog.tools ?? []).map((t) => item("tools", t.name, null, { recommend: t.recommend, reason: t.reason }));
   return [...plugins, ...connectors, ...mcp, ...skillItems, ...tools];
 }
+
+// Whether `item` is turned off in `settings` (only the entries this command writes count).
+function isOff(settings, item) {
+  const denied = (settings.deniedMcpServers ?? []).some((d) => d?.serverName === item.name);
+  switch (item.group) {
+    case "plugins":
+      return settings.enabledPlugins?.[item.id] === false;
+    case "connectors":
+      return settings.disableClaudeAiConnectors === true || denied;
+    case "mcp":
+      return denied;
+    case "skills":
+      return settings.skillOverrides?.[item.name] === "off";
+    default:
+      return item.name === "Artifact"
+        ? settings.enableArtifact === false
+        : (settings.permissions?.deny ?? []).includes(item.name);
+  }
+}
+
+// `settings` with the managed entries rewritten so exactly the `off` keys are off.
+// A new object; the input is untouched. Entries that belong to no item are kept as they are,
+// and the containers this command writes into are removed when they end up empty (an empty
+// container means nothing to Claude Code, and a previous run may have created it).
+export function applyChoices(settings, items, off) {
+  const s = structuredClone(settings ?? {});
+  const live = items.filter((i) => i.switchable);
+  const isOn = (i) => !off.has(i.key);
+
+  const plugins = live.filter((i) => i.group === "plugins");
+  if (plugins.length) {
+    s.enabledPlugins ??= {};
+    for (const p of plugins) {
+      if (isOn(p)) delete s.enabledPlugins[p.id];
+      else s.enabledPlugins[p.id] = false;
+    }
+  }
+
+  const connectors = live.filter((i) => i.group === "connectors");
+  const servers = live.filter((i) => i.group === "connectors" || i.group === "mcp");
+  const allConnectorsOff = connectors.length > 0 && connectors.every((c) => !isOn(c));
+  if (connectors.length) {
+    if (allConnectorsOff) s.disableClaudeAiConnectors = true;
+    else delete s.disableClaudeAiConnectors;
+  }
+  if (servers.length) {
+    const names = new Set(servers.map((i) => i.name));
+    const wanted = servers.filter((i) => !isOn(i) && !(i.group === "connectors" && allConnectorsOff));
+    s.deniedMcpServers = [
+      ...(s.deniedMcpServers ?? []).filter((d) => !names.has(d?.serverName)),
+      ...wanted.map((i) => ({ serverName: i.name })),
+    ];
+  }
+
+  const skills = live.filter((i) => i.group === "skills");
+  if (skills.length) {
+    s.skillOverrides ??= {};
+    for (const k of skills) {
+      if (isOn(k)) delete s.skillOverrides[k.name];
+      else s.skillOverrides[k.name] = "off";
+    }
+  }
+
+  for (const t of live.filter((i) => i.group === "tools")) {
+    if (t.name === "Artifact") {
+      if (isOn(t)) delete s.enableArtifact;
+      else s.enableArtifact = false;
+      continue;
+    }
+    s.permissions ??= {};
+    s.permissions.deny = (s.permissions.deny ?? []).filter((d) => d !== t.name);
+    if (!isOn(t)) s.permissions.deny.push(t.name);
+  }
+
+  const empty = (v) => v != null && (Array.isArray(v) ? v.length === 0 : Object.keys(v).length === 0);
+  for (const key of ["enabledPlugins", "deniedMcpServers", "skillOverrides"]) {
+    if (empty(s[key])) delete s[key];
+  }
+  if (s.permissions) {
+    if (empty(s.permissions.deny)) delete s.permissions.deny;
+    if (empty(s.permissions)) delete s.permissions;
+  }
+  return s;
+}
+
+// The keys of the items `settings` turns off, or null when it holds none of the
+// entries this command writes (a first run: show the recommendations instead).
+export function currentOff(settings, items) {
+  const off = new Set(items.filter((i) => i.switchable && isOff(settings ?? {}, i)).map((i) => i.key));
+  return off.size || settings?.disableClaudeAiConnectors === true ? off : null;
+}
+
+// One answer on a group screen with `count` numbered items.
+export function parseAnswer(input, count) {
+  const t = String(input ?? "").trim().toLowerCase();
+  if (t === "") return { action: "accept" };
+  if (t === "a") return { action: "all-on" };
+  if (t === "n") return { action: "all-off" };
+  const parts = t.split(/[\s,]+/).filter(Boolean);
+  if (!parts.every((p) => /^\d+$/.test(p))) return { action: "invalid" };
+  const numbers = [...new Set(parts.map(Number))];
+  if (numbers.some((n) => n < 1 || n > count)) return { action: "invalid" };
+  return { action: "toggle", numbers };
+}
+
+// What changes between two off-sets, and the tokens the newly turned-off items cost.
+export function summarize(before, after, items) {
+  const turnedOff = items.filter((i) => after.has(i.key) && !before.has(i.key));
+  const turnedOn = items.filter((i) => before.has(i.key) && !after.has(i.key));
+  const tokensSaved = turnedOff.reduce((sum, i) => sum + (i.tokens ?? 0), 0);
+  return { turnedOff, turnedOn, tokensSaved };
+}
