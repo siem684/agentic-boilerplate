@@ -46,6 +46,9 @@ test("spawn with init, work in the project, then sync from a template one versio
 
   // Project work on top: its own script, an edited CLAUDE.md.
   writeTree(project, { "scripts/mine.mjs": "// mine\n", "CLAUDE.md": "# Demo\n\nOur own rules.\n" });
+  // The developer's own lean choices (issue #18): sync must never touch them.
+  const localSettings = '{\n  "skillOverrides": {\n    "pptx": "off"\n  },\n  "env": { "MINE": "1" }\n}\n';
+  writeTree(project, { ".claude/settings.local.json": localSettings });
   gitInit(project);
   const before = snapshot(project);
 
@@ -61,4 +64,5 @@ test("spawn with init, work in the project, then sync from a template one versio
   assert.deepEqual(JSON.parse(after["boilerplate.lock"]), { based_on: "0.2.0", repo: "acme/tpl" });
   assert.ok(!("template.json" in after), "sync never adds template-only files");
   assert.ok(!("scripts/release.mjs" in after), "sync respects the exclude list of the agentic layer");
+  assert.equal(readFileSync(join(project, ".claude/settings.local.json"), "utf8"), localSettings, "settings.local.json byte-identical");
 });
