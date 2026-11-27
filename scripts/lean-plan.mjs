@@ -61,3 +61,58 @@ export function parseContext(text) {
   const servers = [...totals].map(([name, tokens]) => ({ name, tokens }));
   return { skills, servers };
 }
+
+const UNKNOWN = "unknown, kept by default";
+const matches = (pattern, name) => (pattern.endsWith("*") ? name.startsWith(pattern.slice(0, -1)) : pattern === name);
+
+// The catalog's advice for one name in one group: `off` patterns first, then `keep`.
+function recommend(entry, name) {
+  for (const verdict of ["off", "keep"]) {
+    const pattern = (entry?.[verdict] ?? []).find((p) => matches(p, name));
+    if (pattern) return { recommend: verdict, reason: entry.reasons?.[pattern] ?? UNKNOWN };
+  }
+  return { recommend: "keep", reason: UNKNOWN };
+}
+
+function item(group, name, tokens, advice, extra = {}) {
+  return { key: `${group}:${name}`, group, name, ...extra, tokens, ...advice, switchable: true };
+}
+
+// Everything the developer can choose about, in screen order: plugins, connectors,
+// other MCP servers, skills, tools. `userPlugins` are the enabledPlugins ids set to true.
+export function buildItems({ context, userPlugins, catalog }) {
+  const { skills = [], servers = [] } = context ?? {};
+  const pluginTokens = new Map();
+  for (const s of skills.filter((s) => s.source === "plugin")) {
+    pluginTokens.set(s.plugin, (pluginTokens.get(s.plugin) ?? 0) + s.tokens);
+  }
+
+  const plugins = userPlugins.map((id) => {
+    const name = id.split("@")[0];
+    return item("plugins", name, pluginTokens.get(name) ?? null, recommend(catalog.plugins, name), { id });
+  });
+  const known = new Set(plugins.map((p) => p.name));
+  for (const [name, tokens] of pluginTokens) {
+    if (known.has(name)) continue;
+    plugins.push({
+      ...item("plugins", name, tokens, { recommend: "keep", reason: "loaded outside enabledPlugins; cannot be turned off here" }),
+      switchable: false,
+    });
+  }
+
+  const connectors = [];
+  const mcp = [];
+  for (const s of servers) {
+    const display = connectorDisplayName(s.name);
+    if (display) connectors.push(item("connectors", display, s.tokens, recommend(catalog.connectors, display)));
+    else mcp.push(item("mcp", s.name, s.tokens, recommend(catalog.mcp, s.name)));
+  }
+
+  const own = { recommend: "keep", reason: "your own skill" };
+  const skillItems = skills
+    .filter((s) => s.source !== "plugin")
+    .map((s) => item("skills", s.name, s.tokens, s.source === "user" ? own : recommend(catalog.skills, s.name)));
+
+  const tools = (catalog.tools ?? []).map((t) => item("tools", t.name, null, { recommend: t.recommend, reason: t.reason }));
+  return [...plugins, ...connectors, ...mcp, ...skillItems, ...tools];
+}
