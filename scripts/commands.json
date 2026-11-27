@@ -38,6 +38,21 @@
       ],
       "example": "node scripts/check.mjs --offline"
     },
+    "lean": {
+      "summary": "Choose which plugins, connectors, MCP servers, skills and tools load in this project",
+      "audience": "you",
+      "flags": [
+        { "flag": "--lean recommended|off", "description": "Apply the recommendations without asking, or skip and write nothing" },
+        { "flag": "--inventory <file>", "description": "Read a saved `/context` report instead of running `claude`" },
+        { "flag": "--home <dir>", "description": "Home directory whose Claude settings are read (default: your home)" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Choices written, nothing to change, or skipped" },
+        { "code": 2, "meaning": "A flag is invalid, or .claude/settings.local.json is not valid JSON; nothing was written" }
+      ],
+      "example": "node scripts/run.mjs lean"
+    },
     "vendor": {
       "summary": "List the pinned external components and verify the installed versions (read-only, offline)",
       "audience": "you",

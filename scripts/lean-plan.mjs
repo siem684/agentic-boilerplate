@@ -228,3 +228,56 @@ export function summarize(before, after, items) {
   const tokensSaved = turnedOff.reduce((sum, i) => sum + (i.tokens ?? 0), 0);
   return { turnedOff, turnedOn, tokensSaved };
 }
+
+export const GROUP_LABELS = {
+  plugins: "Plugins",
+  connectors: "claude.ai connectors",
+  mcp: "Other MCP servers",
+  skills: "Skills",
+  tools: "Built-in tools",
+};
+
+// 3300 → "~3.3k", 480 → "~480".
+export const formatTokens = (n) => (n >= 1000 ? `~${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : `~${n}`);
+
+// The keys a first run starts from.
+export function recommendedOff(items) {
+  return new Set(items.filter((i) => i.switchable && i.recommend === "off").map((i) => i.key));
+}
+
+const shortName = (i) => (i.group === "connectors" ? i.name.replace(/^claude\.ai /, "") : i.name);
+
+// One group screen: header with count, tokens and the recommendation; one line per item
+// ([x] = off); switchable items are numbered from 1 in screen order.
+export function renderGroup(group, items, off) {
+  const list = items.filter((i) => i.group === group);
+  const switchable = list.filter((i) => i.switchable);
+  const known = list.filter((i) => i.tokens != null);
+  const tokens = known.length ? `, ${formatTokens(known.reduce((s, i) => s + i.tokens, 0))} tokens` : "";
+  const recOff = switchable.filter((i) => i.recommend === "off").length;
+  const rec = recOff === 0 ? "all on" : recOff === switchable.length ? "all off" : `${recOff} of ${switchable.length} off`;
+  const width = Math.max(...list.map((i) => shortName(i).length));
+  let n = 0;
+  const lines = list.map((i) => {
+    const isOff = off.has(i.key);
+    const mark = !i.switchable ? "[-]  " : `${isOff ? "[x]" : "[ ]"} ${++n}`;
+    return `  ${mark} ${shortName(i).padEnd(width)}  ${isOff ? "off" : "on "}   ${i.reason}`;
+  });
+  return [`${GROUP_LABELS[group]} (${list.length}${tokens})    recommended: ${rec}`, ...lines, "Enter = accept, numbers to toggle (e.g. 2 5), a = all on, n = all off"].join("\n");
+}
+
+// The off-set after one parsed answer on `group`'s screen; the input set is untouched.
+export function answerGroup(answer, group, items, off) {
+  if (answer.action === "accept" || answer.action === "invalid") return off;
+  const switchable = items.filter((i) => i.group === group && i.switchable);
+  const next = new Set(off);
+  if (answer.action === "all-on") for (const i of switchable) next.delete(i.key);
+  if (answer.action === "all-off") for (const i of switchable) next.add(i.key);
+  if (answer.action === "toggle") {
+    for (const n of answer.numbers) {
+      const key = switchable[n - 1]?.key;
+      if (key && !next.delete(key)) next.add(key);
+    }
+  }
+  return next;
+}

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseContext, connectorDisplayName, parseTokens, buildItems, applyChoices, currentOff, parseAnswer, summarize } from "../../scripts/lean-plan.mjs";
+import { parseContext, connectorDisplayName, parseTokens, buildItems, applyChoices, currentOff, parseAnswer, summarize, recommendedOff, renderGroup, answerGroup } from "../../scripts/lean-plan.mjs";
 
 const REPORT = readFileSync(new URL("./fixtures/context-report.md", import.meta.url), "utf8");
 
@@ -251,6 +251,43 @@ test("summarize counts tokens of items turned off", () => {
   assert.deepEqual(r.turnedOff.map((i) => i.key), ["connectors:claude.ai Gmail", "tools:Artifact"]);
   assert.deepEqual(r.turnedOn.map((i) => i.key), ["skills:pptx"]);
   assert.equal(r.tokensSaved, 3300);
+});
+
+// ---- Task 4: what the interactive screens show and do ----
+
+test("recommendedOff holds the switchable items recommended off", () => {
+  const list = buildItems({ context: parseContext(REPORT), userPlugins: [], catalog: CATALOG });
+  assert.deepEqual([...recommendedOff(list)], [
+    "connectors:claude.ai Gmail",
+    "connectors:claude.ai Google Calendar",
+    "skills:pptx",
+    "tools:Artifact",
+  ]);
+});
+
+test("renderGroup shows the spec's screen: numbered items, state, reason, tokens", () => {
+  const screen = renderGroup("connectors", ITEMS, offSet("connectors:claude.ai Gmail"));
+  const lines = screen.split("\n");
+  assert.match(lines[0], /^claude\.ai connectors \(2, ~3\.8k tokens\)\s+recommended: all off$/);
+  assert.match(lines[1], /^ {2}\[x\] 1 Gmail\s+off\s+not needed for code$/);
+  assert.match(lines[2], /^ {2}\[ \] 2 Google Calendar\s+on\s+not needed for code$/);
+  assert.equal(lines[3], "Enter = accept, numbers to toggle (e.g. 2 5), a = all on, n = all off");
+});
+
+test("renderGroup marks an item that cannot be switched and does not number it", () => {
+  const list = buildItems({ context: parseContext(REPORT), userPlugins: [], catalog: CATALOG });
+  const screen = renderGroup("plugins", list, offSet());
+  assert.match(screen, /^ {2}\[-\]\s+helper\s+on\s+loaded outside enabledPlugins/m);
+});
+
+test("answerGroup toggles numbers within the group and sets all on or off", () => {
+  const start = offSet("connectors:claude.ai Gmail", "skills:pptx");
+  const toggled = answerGroup({ action: "toggle", numbers: [1, 2] }, "connectors", ITEMS, start);
+  assert.deepEqual([...toggled].sort(), ["connectors:claude.ai Google Calendar", "skills:pptx"]);
+  assert.deepEqual([...answerGroup({ action: "all-on" }, "connectors", ITEMS, start)], ["skills:pptx"]);
+  assert.equal(answerGroup({ action: "all-off" }, "connectors", ITEMS, start).size, 3);
+  assert.equal(answerGroup({ action: "accept" }, "connectors", ITEMS, start), start);
+  assert.deepEqual([...start].sort(), ["connectors:claude.ai Gmail", "skills:pptx"], "input untouched");
 });
 
 test("merged with .claude/settings.json the template's deny rules and hooks remain", () => {
