@@ -1,7 +1,7 @@
 {
   "$comment": "Single source of truth for `node scripts/run.mjs`: what each script is for, who runs it, its flags and exit codes. tests/run.test.mjs fails when a script in scripts/ has no entry here. `notCommands` are the dispatcher and the library modules. `templateOnly` entries are hidden when the script is absent (they are deleted in spawned projects).",
   "schemaVersion": 1,
-  "notCommands": ["run", "layers", "validate", "placeholders", "tar", "sync-plan"],
+  "notCommands": ["run", "layers", "validate", "placeholders", "tar", "sync-plan", "lean-plan"],
   "audiences": {
     "you": "Run by you",
     "automated": "Run by CI or hooks, not for manual use",
