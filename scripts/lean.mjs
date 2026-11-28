@@ -44,6 +44,11 @@ while (args.length) {
 if (opts.lean && !["recommended", "off"].includes(opts.lean)) fail(`--lean must be recommended or off\n${USAGE}`);
 const root = resolve(opts.root ?? process.cwd());
 const home = resolve(opts.home ?? homedir());
+// Where Claude Code keeps the user setup: CLAUDE_CONFIG_DIR when set (it then also holds
+// .claude.json), else ~/.claude. An explicit --home wins, so tests stay independent of the env.
+const configDir = !opts.home && process.env.CLAUDE_CONFIG_DIR ? resolve(process.env.CLAUDE_CONFIG_DIR) : null;
+const userDir = configDir ?? join(home, ".claude");
+const userJson = configDir ? join(configDir, ".claude.json") : join(home, ".claude.json");
 
 if (opts.lean === "off") {
   console.log("lean: skipped (--lean off); nothing written.");
@@ -81,7 +86,7 @@ if (existsSync(localFile)) {
 // `claude -p /context`, with constant arguments only. Without a shell first; on Windows the
 // npm .cmd shim needs one, which is safe because nothing here comes from input.
 function runContext() {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("CLAUDE")));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("CLAUDE") || k === "CLAUDE_CONFIG_DIR"));
   env.MSYS_NO_PATHCONV = "1";
   const argv = ["-p", "/context", "--setting-sources", "user"];
   const options = { cwd: root, env, encoding: "utf8", timeout: 120_000, windowsHide: true };
@@ -96,10 +101,10 @@ function runContext() {
 // user's own skill directories. Plugins come from the user settings either way.
 function diskInventory() {
   const names = new Set([
-    ...Object.keys(readJson(join(home, ".claude.json"), {})?.mcpServers ?? {}),
+    ...Object.keys(readJson(userJson, {})?.mcpServers ?? {}),
     ...Object.keys(readJson(join(root, ".mcp.json"), {})?.mcpServers ?? {}),
   ]);
-  const skillsDir = join(home, ".claude", "skills");
+  const skillsDir = join(userDir, "skills");
   const skills = existsSync(skillsDir)
     ? readdirSync(skillsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => ({ name: d.name, source: "user", tokens: null }))
     : [];
@@ -112,7 +117,7 @@ if (!context) {
   console.warn("warning: could not read /context; claude.ai connectors and account skills are not listed");
   context = diskInventory();
 }
-const userSettings = readJson(join(home, ".claude", "settings.json"), {});
+const userSettings = readJson(join(userDir, "settings.json"), {});
 const userPlugins = Object.entries(userSettings?.enabledPlugins ?? {}).filter(([, on]) => on === true).map(([id]) => id);
 const catalog = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "lean-catalog.json"), "utf8"));
 const items = buildItems({ context, userPlugins, catalog });

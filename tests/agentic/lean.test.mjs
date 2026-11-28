@@ -125,6 +125,22 @@ test("unparseable /context output falls back to disk with a warning", () => {
   rmSync(t.base, { recursive: true });
 });
 
+test("without --home, CLAUDE_CONFIG_DIR is where the user setup is read from", () => {
+  const t = setup();
+  const config = join(t.base, "config");
+  mkdirSync(config);
+  writeFileSync(join(config, ".claude.json"), JSON.stringify({ mcpServers: { "claude-in-chrome": { command: "x" } } }));
+  const inventory = join(t.base, "context.txt");
+  writeFileSync(inventory, "Error: not signed in\n");
+  const r = spawnSync(process.execPath, [SCRIPT, "--root", t.root, "--lean", "recommended", "--inventory", inventory], {
+    encoding: "utf8",
+    env: { ...process.env, CLAUDE_CONFIG_DIR: config },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(local(t.root), "utf8")).deniedMcpServers, [{ serverName: "claude-in-chrome" }]);
+  rmSync(t.base, { recursive: true });
+});
+
 test("an unknown flag or --lean value exits 2", () => {
   const t = setup();
   assert.equal(run(t, "--bogus").status, 2);
