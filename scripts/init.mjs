@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // init.mjs: fill in the template placeholders of a freshly spawned project.
-// Safe to re-run: once the placeholders are gone it changes nothing.
+// Safe to re-run: once the placeholders are gone it changes none of them and only
+// repeats the lean step (see below).
 //
 //   node scripts/init.mjs --name <n> --description <d> --owner <@user|@org/team> --check "<cmd>"
 //
