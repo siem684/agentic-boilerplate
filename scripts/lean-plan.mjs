@@ -249,6 +249,9 @@ const shortName = (i) => (i.group === "connectors" ? i.name.replace(/^claude\.ai
 
 // One group screen: header with count, tokens and the recommendation; one line per item
 // ([x] = off); switchable items are numbered from 1 in screen order.
+// Printed once before the first screen: the tick marks what is turned off, not what is kept.
+export const INTRO = "Choose what loads in this project: [x] = off (not loaded), [ ] = on. Recommendations are pre-ticked.";
+
 export function renderGroup(group, items, off) {
   const list = items.filter((i) => i.group === group);
   const switchable = list.filter((i) => i.switchable);

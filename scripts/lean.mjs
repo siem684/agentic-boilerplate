@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import {
-  GROUP_LABELS, answerGroup, applyChoices, buildItems, currentOff, formatTokens, parseAnswer,
+  GROUP_LABELS, INTRO, answerGroup, applyChoices, buildItems, currentOff, formatTokens, parseAnswer,
   parseContext, recommendedOff, renderGroup, summarize,
 } from "./lean-plan.mjs";
 
@@ -135,6 +135,7 @@ rl?.on("SIGINT", () => {
 });
 
 if (interactive) {
+  console.log(`\n${INTRO}`);
   for (const group of Object.keys(GROUP_LABELS)) {
     const list = items.filter((i) => i.group === group);
     if (!list.length) continue;

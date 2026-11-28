@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseContext, connectorDisplayName, parseTokens, buildItems, applyChoices, currentOff, parseAnswer, summarize, recommendedOff, renderGroup, answerGroup } from "../../scripts/lean-plan.mjs";
+import { parseContext, connectorDisplayName, parseTokens, buildItems, applyChoices, currentOff, parseAnswer, summarize, recommendedOff, renderGroup, answerGroup, INTRO } from "../../scripts/lean-plan.mjs";
 
 const REPORT = readFileSync(new URL("./fixtures/context-report.md", import.meta.url), "utf8");
 
@@ -272,6 +272,12 @@ test("renderGroup shows the spec's screen: numbered items, state, reason, tokens
   assert.match(lines[1], /^ {2}\[x\] 1 Gmail\s+off\s+not needed for code$/);
   assert.match(lines[2], /^ {2}\[ \] 2 Google Calendar\s+on\s+not needed for code$/);
   assert.equal(lines[3], "Enter = accept, numbers to toggle (e.g. 2 5), a = all on, n = all off");
+});
+
+test("INTRO explains that a ticked box means the item is turned off", () => {
+  assert.doesNotMatch(INTRO, /\n/);
+  assert.match(INTRO, /\[x\] = off/);
+  assert.match(INTRO, /\[ \] = on/);
 });
 
 test("renderGroup marks an item that cannot be switched and does not number it", () => {
