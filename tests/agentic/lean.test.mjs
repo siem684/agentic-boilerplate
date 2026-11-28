@@ -73,6 +73,16 @@ test("second run with the same answers gives the same file", () => {
   rmSync(t.base, { recursive: true });
 });
 
+test("a second run with nothing to change says so and does not claim to write", () => {
+  const t = setup();
+  run(t, "--lean", "recommended", "--inventory", FIXTURE);
+  const r = run(t, "--lean", "recommended", "--inventory", FIXTURE);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /No changes; \.claude\/settings\.local\.json is up to date\./);
+  assert.doesNotMatch(r.stdout, /Wrote/);
+  rmSync(t.base, { recursive: true });
+});
+
 test("invalid JSON in settings.local.json exits 2 and writes nothing", () => {
   const t = setup();
   mkdirSync(join(t.root, ".claude"));

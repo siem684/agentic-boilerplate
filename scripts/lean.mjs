@@ -170,6 +170,12 @@ if (!existsSync(localFile) && !Object.keys(next).length) {
   rl?.close();
   process.exit(0);
 }
+if (!turnedOff.length && !turnedOn.length && existsSync(localFile) && readFileSync(localFile, "utf8") === content) {
+  console.log(`\nNo changes; ${LOCAL} is up to date.`);
+  rl?.close();
+  console.log(UNDO);
+  process.exit(0);
+}
 
 if (interactive) {
   console.log("");
