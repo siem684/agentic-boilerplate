@@ -7,5 +7,6 @@ These documents ship with the template and are kept up to date by `sync.mjs`. Re
 3. [decisions.md](decisions.md): one row per decision: what was chosen, what was rejected, how well tested.
 4. [register.md](register.md): what is proven, what is only prescribed, what is open, and how to help.
 5. [vendoring.md](vendoring.md): how BMAD and graphify are pinned, installed and checked.
+6. [lean-settings.md](lean-settings.md): choosing per project which of your plugins, connectors, skills and tools load, and how to undo it.
 
 The template's own decisions are in [adr/](adr/); your project's decisions go in `docs/adr/`.

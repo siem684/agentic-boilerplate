@@ -13,6 +13,7 @@ The status column is the register's group, not the `Status:` line inside each AD
 | No real personal data anywhere; test data is fictional. | Not recorded. | Proven (owner: good practice). | [0005](adr/0005-no-personal-data.md) |
 | `graphify-out/` is committed and agents read its report first. | Not recorded. | Open for improvement: it helps, and it is not known to be optimal. | [0006](adr/0006-knowledge-graph.md) |
 | Claude by default; the label `dev:deepseek` switches the dev session to another model through a base URL, with a separate key and no fallback. | Bedrock, Vertex or Foundry (Claude models only); a headless `claude -p` step (kept as the fallback); falling back to the Anthropic key (rejected). | Pilot: whether the action honours the setting is unverified. | [0007](adr/0007-model-agnostic-base-url.md) |
+| Each developer chooses per item which of their plugins, connectors, MCP servers, skills and built-in tools load in a project, from recommendations; the choices go into their own `.claude/settings.local.json`. | A fixed baseline file; an automatic script without per-item choice; a launch wrapper that drops the developer's own settings. | Built here, tested here only. | [0011](adr/0011-lean-per-project-settings.md) |
 
 ## Choices without an ADR
 

@@ -32,7 +32,7 @@ How to read the groups: **proven** means used in other projects; **prescribed, n
 
 ## Built here, tested here only
 
-`init`, `check`, `vendor`, `staleness`, `sync`, `release`, `run` and `report` are scripts built in this template. They are covered by this repository's tests, including a test that spawns a throwaway project, and have not yet been run on a real spawned project. `release` exists only in the template repository. The decisions about versioning, which template files a spawned project keeps and why staleness is checked on request are ADRs 0008 to 0010, also in the template repository. This group is the template author's addition to the owner's statement; the owner reviewed and confirmed it on 2026-11-24.
+`init`, `check`, `vendor`, `staleness`, `sync`, `release`, `run`, `report` and `lean` are scripts built in this template. They are covered by this repository's tests, including a test that spawns a throwaway project, and have not yet been run on a real spawned project. `release` exists only in the template repository. The decisions about versioning, which template files a spawned project keeps and why staleness is checked on request are ADRs 0008 to 0010, also in the template repository. This group is the template author's addition to the owner's statement; the owner reviewed and confirmed it on 2026-11-24.
 
 | Component | Claim | Evidence |
 |---|---|---|
@@ -40,3 +40,4 @@ How to read the groups: **proven** means used in other projects; **prescribed, n
 | `vendor`, `staleness` | Pin and verify vendored tools; report what is behind. | Unit tests, with stub servers for the network. |
 | `sync` | Bring a spawned project's agentic layer up to a release as a normal PR. | Unit and integration tests. |
 | `release`, `run`, `report` | Tag a release; list the commands; summarise telemetry. | Unit tests. |
+| `lean` | Turn off, per project and per item, what a developer's own setup loads ([ADR 0011](adr/0011-lean-per-project-settings.md)). | Unit tests, and one run by the owner in a spawned scratch project: about 17.4k fewer input tokens per request on the owner's setup. |
