@@ -1,0 +1,95 @@
+{
+  "$comment": "Recommendations for `node scripts/run.mjs lean`. Guiding question: does an agent working on a software issue need this item? A pattern is an exact name or ends in * (prefix). `off` is checked first, then `keep`; anything unmatched is kept. Connectors are matched by display name (claude.ai Gmail), skills by the name /context shows. The developer's own (User) skills are always kept.",
+  "plugins": {
+    "keep": [],
+    "off": [],
+    "reasons": {}
+  },
+  "connectors": {
+    "keep": ["claude.ai GitHub*", "claude.ai Linear*", "claude.ai Jira*", "claude.ai Atlassian*", "claude.ai Sentry*"],
+    "off": [
+      "claude.ai Gmail",
+      "claude.ai Google Calendar",
+      "claude.ai Google Drive",
+      "claude.ai Google Docs",
+      "claude.ai Google Sheets",
+      "claude.ai Google Slides",
+      "claude.ai Notion",
+      "claude.ai Claude Docs"
+    ],
+    "reasons": {
+      "claude.ai GitHub*": "developer tool: issues and pull requests",
+      "claude.ai Linear*": "developer tool: issue tracker",
+      "claude.ai Jira*": "developer tool: issue tracker",
+      "claude.ai Atlassian*": "developer tool: issue tracker and wiki",
+      "claude.ai Sentry*": "developer tool: error monitoring",
+      "claude.ai Gmail": "personal mail, not needed for code",
+      "claude.ai Google Calendar": "personal calendar, not needed for code",
+      "claude.ai Google Drive": "office files, not needed for code",
+      "claude.ai Google Docs": "office documents, not needed for code",
+      "claude.ai Google Sheets": "office spreadsheets, not needed for code",
+      "claude.ai Google Slides": "office slides, not needed for code",
+      "claude.ai Notion": "notes outside the repository, not needed for code",
+      "claude.ai Claude Docs": "documents outside the repository, not needed for code"
+    }
+  },
+  "mcp": {
+    "keep": ["github*", "linear*", "jira*", "sentry*"],
+    "off": ["claude-in-chrome*"],
+    "reasons": {
+      "github*": "developer tool: issues and pull requests",
+      "linear*": "developer tool: issue tracker",
+      "jira*": "developer tool: issue tracker",
+      "sentry*": "developer tool: error monitoring",
+      "claude-in-chrome*": "drives your own browser, not needed for code"
+    }
+  },
+  "skills": {
+    "keep": ["code-review", "security-review", "simplify", "run", "init", "claude-api", "update-config"],
+    "off": [
+      "pptx",
+      "docx",
+      "xlsx",
+      "pdf",
+      "docs",
+      "google-workspace",
+      "built-in-browser",
+      "chrome-browser",
+      "computer-use",
+      "morning",
+      "schedule",
+      "3d-printing-models",
+      "import-memory"
+    ],
+    "reasons": {
+      "code-review": "reviews code changes",
+      "security-review": "reviews code changes for security",
+      "simplify": "cleans up changed code",
+      "run": "runs the app to check a change",
+      "init": "writes a CLAUDE.md for the codebase",
+      "claude-api": "reference for building on the Claude API",
+      "update-config": "edits Claude Code settings and hooks",
+      "pptx": "office slides, not needed for code",
+      "docx": "office documents, not needed for code",
+      "xlsx": "office spreadsheets, not needed for code",
+      "pdf": "PDF files, not needed for code",
+      "docs": "documents outside the repository, not needed for code",
+      "google-workspace": "office files, not needed for code",
+      "built-in-browser": "desktop app browser, not needed for code",
+      "chrome-browser": "drives your own browser, not needed for code",
+      "computer-use": "controls your desktop, not needed for code",
+      "morning": "personal morning brief, not needed for code",
+      "schedule": "schedules cloud tasks, not needed for code",
+      "3d-printing-models": "3D models, not needed for code",
+      "import-memory": "imports memory from other assistants, not needed for code"
+    }
+  },
+  "tools": [
+    { "name": "Artifact", "recommend": "off", "reason": "publishes pages, not needed for code" },
+    { "name": "NotebookEdit", "recommend": "keep", "reason": "edits Jupyter notebooks in the repository" },
+    { "name": "WebFetch", "recommend": "keep", "reason": "reads documentation pages" },
+    { "name": "WebSearch", "recommend": "keep", "reason": "looks up documentation and errors" },
+    { "name": "CronCreate", "recommend": "off", "reason": "schedules recurring prompts, not needed for an issue" },
+    { "name": "RemoteTrigger", "recommend": "off", "reason": "starts cloud sessions, not needed for an issue" }
+  ]
+}

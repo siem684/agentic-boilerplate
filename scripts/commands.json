@@ -1,7 +1,7 @@
 {
   "$comment": "Single source of truth for `node scripts/run.mjs`: what each script is for, who runs it, its flags and exit codes. tests/run.test.mjs fails when a script in scripts/ has no entry here. `notCommands` are the dispatcher and the library modules. `templateOnly` entries are hidden when the script is absent (they are deleted in spawned projects).",
   "schemaVersion": 1,
-  "notCommands": ["run", "layers", "validate", "placeholders", "tar", "sync-plan"],
+  "notCommands": ["run", "layers", "validate", "placeholders", "tar", "sync-plan", "lean-plan"],
   "audiences": {
     "you": "Run by you",
     "automated": "Run by CI or hooks, not for manual use",
@@ -17,10 +17,13 @@
         { "flag": "--owner <@user|@org/team>", "description": "GitHub handle or team that must review protected paths; @me does not work" },
         { "flag": "--check \"<cmd>\"", "description": "Command that proves the project is healthy; lands in CLAUDE.md and ci.yml" },
         { "flag": "--offline", "description": "Skip the `gh` lookup that checks the owner exists" },
-        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" },
+        { "flag": "--lean recommended|off", "description": "Last step, the lean chooser: apply its recommendations without asking, or skip it" },
+        { "flag": "--inventory <file>", "description": "Passed to the lean step: a saved `/context` report" },
+        { "flag": "--home <dir>", "description": "Passed to the lean step: home directory whose Claude settings are read" }
       ],
       "exitCodes": [
-        { "code": 0, "meaning": "Placeholders filled in, or nothing left to fill in" },
+        { "code": 0, "meaning": "Placeholders filled in, or nothing left to fill in (also when the lean step failed; it prints a warning)" },
         { "code": 1, "meaning": "An input is invalid; nothing was written" }
       ],
       "example": "node scripts/init.mjs --name \"My App\" --description \"One line.\" --owner @your-github-username --check \"npm test\""
@@ -37,6 +40,21 @@
         { "code": 1, "meaning": "Something blocks use (leftover placeholder, missing component or required secret)" }
       ],
       "example": "node scripts/check.mjs --offline"
+    },
+    "lean": {
+      "summary": "Choose which plugins, connectors, MCP servers, skills and tools load in this project",
+      "audience": "you",
+      "flags": [
+        { "flag": "--lean recommended|off", "description": "Apply the recommendations without asking, or skip and write nothing" },
+        { "flag": "--inventory <file>", "description": "Read a saved `/context` report instead of running `claude`" },
+        { "flag": "--home <dir>", "description": "Home directory whose Claude settings are read (default: your home)" },
+        { "flag": "--root <dir>", "description": "Project directory (default: current directory)" }
+      ],
+      "exitCodes": [
+        { "code": 0, "meaning": "Choices written, nothing to change, or skipped" },
+        { "code": 2, "meaning": "A flag is invalid, or .claude/settings.local.json is not valid JSON; nothing was written" }
+      ],
+      "example": "node scripts/run.mjs lean"
     },
     "vendor": {
       "summary": "List the pinned external components and verify the installed versions (read-only, offline)",

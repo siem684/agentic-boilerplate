@@ -1,15 +1,21 @@
 #!/usr/bin/env node
 // init.mjs: fill in the template placeholders of a freshly spawned project.
-// Safe to re-run: once the placeholders are gone it changes nothing.
+// Safe to re-run: once the placeholders are gone it changes none of them and only
+// repeats the lean step (see below).
 //
 //   node scripts/init.mjs --name <n> --description <d> --owner <@user|@org/team> --check "<cmd>"
 //
 // Inputs are validated first; nothing is written if any is invalid. The owner is
 // also looked up with `gh api` (a warning if that is not possible).
 // Options: --root <dir> (default: current directory); --offline skips the `gh` lookup.
+// Last step: the lean chooser (lean.mjs) for this developer's .claude/settings.local.json.
+// --lean recommended|off, --inventory <file> and --home <dir> are passed on to it; without
+// --lean and without a terminal it is skipped. A failing lean step is only a warning.
 // Afterwards run `node scripts/check.mjs` to see what is still missing.
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import { PLACEHOLDER_FILES } from "./placeholders.mjs";
 import { validateInputs, ownerExists } from "./validate.mjs";
 
@@ -22,13 +28,23 @@ const offlineAt = args.indexOf("--offline");
 const offline = offlineAt !== -1;
 if (offline) args.splice(offlineAt, 1);
 const root = resolve(take("--root") ?? process.cwd());
-const flags = { PROJECT_NAME: "--name", PROJECT_DESCRIPTION: "--description", OWNER: "--owner", CHECK_COMMANDS: "--check" };
+const leanArgs = [];
+for (const f of ["--lean", "--inventory", "--home"]) {
+  const v = take(f);
+  if (v !== undefined) leanArgs.push(f, v);
+}
+const lean = leanArgs[leanArgs.indexOf("--lean") + 1];
+if (leanArgs.includes("--lean") && !["recommended", "off"].includes(lean)) {
+  console.error("--lean must be recommended or off");
+  process.exit(1);
+}
+const flags ={ PROJECT_NAME: "--name", PROJECT_DESCRIPTION: "--description", OWNER: "--owner", CHECK_COMMANDS: "--check" };
 const values = Object.fromEntries(Object.entries(flags).map(([k, f]) => [k, take(f)]));
 
 const missing = Object.keys(values).filter((k) => !values[k]);
 if (missing.length) {
   console.error(`Missing: ${missing.map((k) => flags[k]).join(", ")}`);
-  console.error('Usage: init.mjs --name <n> --description <d> --owner <@user> --check "<cmd>"');
+  console.error('Usage: init.mjs --name <n> --description <d> --owner <@user> --check "<cmd>" [--lean recommended|off]');
   process.exit(1);
 }
 
@@ -104,4 +120,11 @@ for (const [pattern, target, isDir] of templateOnly.filter(([, target]) => exist
   console.log(`removed ${pattern}`);
 }
 if (!out.length) console.log("nothing to do: no placeholders left");
+
+// Last, after all of init's own writes: let this developer choose what loads (lean.mjs).
+const leanScript = join(dirname(fileURLToPath(import.meta.url)), "lean.mjs");
+if (existsSync(leanScript)) {
+  const r = spawnSync(process.execPath, [leanScript, "--root", root, ...leanArgs], { stdio: "inherit" });
+  if (r.status !== 0) console.warn("warning: the lean step failed; the project is initialised. Rerun it with: node scripts/run.mjs lean");
+}
 console.log("Next: node scripts/check.mjs");

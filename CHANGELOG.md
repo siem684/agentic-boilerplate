@@ -7,6 +7,7 @@ Each entry is grouped by layer and ends with an **Action required** line for spa
 ## [Unreleased]
 
 ### Agentic layer
+- New `lean` command (`scripts/lean.mjs`, `lean-plan.mjs`, `lean-catalog.json`), also run as the last step of `init.mjs`: it lists the developer's own plugins, claude.ai connectors, MCP servers, skills and built-in tools with a keep or off recommendation each, and writes the choices to their own `.claude/settings.local.json`. `init.mjs` gains `--lean recommended|off`; without a terminal the step is skipped. On the owner's setup the recommended choices cut a one-line request from 39,972 to 22,568 input tokens. [ADR 0011](docs/agentic/adr/0011-lean-per-project-settings.md), guide in `docs/agentic/lean-settings.md`. Tests in `tests/agentic/lean-plan.test.mjs` and `lean.test.mjs`. Optional for spawned projects: run `node scripts/run.mjs lean`.
 - `docs/agentic/register.md` and `decisions.md`: the two items marked "to confirm" (budget caps under telemetry and guardrails, and the group of scripts tested only in this template) are confirmed by the owner. The wording is otherwise unchanged. `tests/docs.test.mjs` fails if a synced document is marked "to confirm" again.
 
 ### Template-only

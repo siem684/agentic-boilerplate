@@ -221,3 +221,45 @@ test("init removes everything the real layers.json lists as template-only", () =
   assert.ok(existsSync(join(root, "scripts/init.mjs")));
   rmSync(root, { recursive: true });
 });
+
+const LEAN_FIXTURE = fileURLToPath(new URL("./fixtures/context-report.md", import.meta.url));
+
+test("init runs the lean step with --lean recommended", () => {
+  const root = spawned();
+  const home = mkdtempSync(join(tmpdir(), "init-home-"));
+  const r = run(root, ...INIT, "--lean", "recommended", "--inventory", LEAN_FIXTURE, "--home", home);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(read(root, "CLAUDE.md"), "# Demo\n\nA demo app.\n\nRun: npm test\n", "init's own work is done first");
+  assert.equal(JSON.parse(read(root, ".claude/settings.local.json")).skillOverrides.pptx, "off");
+  rmSync(root, { recursive: true });
+  rmSync(home, { recursive: true });
+});
+
+test("init without a TTY skips the lean step", () => {
+  const root = spawned();
+  const r = run(root, ...INIT);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /lean: skipped/);
+  assert.ok(!existsSync(join(root, ".claude/settings.local.json")));
+  rmSync(root, { recursive: true });
+});
+
+test("init rejects an invalid --lean value and changes nothing", () => {
+  const root = spawned();
+  const r = run(root, ...INIT, "--lean", "maybe");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--lean/);
+  assert.match(read(root, "CLAUDE.md"), /\{\{PROJECT_NAME\}\}/);
+  rmSync(root, { recursive: true });
+});
+
+test("a failing lean step is a warning; init still exits 0", () => {
+  const root = spawned();
+  mkdirSync(join(root, ".claude"));
+  writeFileSync(join(root, ".claude/settings.local.json"), "{ not json");
+  const r = run(root, ...INIT, "--lean", "recommended", "--inventory", LEAN_FIXTURE, "--home", root);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /warning: the lean step failed/);
+  assert.equal(read(root, "CLAUDE.md"), "# Demo\n\nA demo app.\n\nRun: npm test\n");
+  rmSync(root, { recursive: true });
+});

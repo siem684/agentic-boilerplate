@@ -1,6 +1,6 @@
 # Fork guide
 
-For someone who forks this template to make their own variant, for example with other agents or other defaults. If you only want a project that uses the template, you do not need this: follow the README and spawn one.
+For someone who forks this template to make their own variant, for example with other agents or other defaults. Don't use this forking process if you only want a project that uses the template. In that case you do not need this: follow the README and spawn one.
 
 This file is template-only: `init.mjs` deletes it in a spawned project.
 
