@@ -73,6 +73,24 @@ test("second run with the same answers gives the same file", () => {
   rmSync(t.base, { recursive: true });
 });
 
+test("--lean recommended only adds; what the developer turned off stays off", () => {
+  const t = setup();
+  mkdirSync(join(t.root, ".claude"));
+  writeFileSync(local(t.root), JSON.stringify({
+    permissions: { deny: ["WebFetch"] },
+    deniedMcpServers: [{ serverName: "local-search" }],
+  }));
+  const r = run(t, "--lean", "recommended", "--inventory", FIXTURE);
+  assert.equal(r.status, 0, r.stderr);
+  const s = JSON.parse(readFileSync(local(t.root), "utf8"));
+  assert.ok(s.permissions.deny.includes("WebFetch"), JSON.stringify(s));
+  assert.ok(s.permissions.deny.includes("CronCreate"), JSON.stringify(s));
+  assert.deepEqual(s.deniedMcpServers, [{ serverName: "local-search" }]);
+  assert.equal(s.disableClaudeAiConnectors, true);
+  assert.doesNotMatch(r.stdout, /Turned back on/);
+  rmSync(t.base, { recursive: true });
+});
+
 test("a second run with nothing to change says so and does not claim to write", () => {
   const t = setup();
   run(t, "--lean", "recommended", "--inventory", FIXTURE);

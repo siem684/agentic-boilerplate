@@ -7,7 +7,8 @@
 //   node scripts/run.mjs lean [--lean recommended|off] [--inventory <file>] [--home <dir>] [--root <dir>]
 //
 // Without --lean and on a terminal: one screen per group, then a confirmation.
-// --lean recommended applies the recommendations without asking; --lean off writes nothing.
+// --lean recommended applies the recommendations without asking, keeping off what is already
+// off; --lean off writes nothing.
 // Without --lean and without a terminal (CI) the step is skipped.
 // The inventory comes from `claude -p /context --setting-sources user` (or --inventory <file>);
 // when that cannot be read, from disk: user plugins, MCP servers, user skills.
@@ -118,7 +119,8 @@ const items = buildItems({ context, userPlugins, catalog });
 
 const now = currentOff(existing, items);
 const before = now ?? new Set();
-let after = interactive ? now ?? recommendedOff(items) : recommendedOff(items);
+// --lean recommended only adds to what is off: it never turns back on what the developer turned off.
+let after = interactive ? now ?? recommendedOff(items) : new Set([...before, ...recommendedOff(items)]);
 
 const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
 async function ask(question) {

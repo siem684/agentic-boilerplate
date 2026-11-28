@@ -15,6 +15,8 @@ One screen per group: plugins, claude.ai connectors, other MCP servers, skills, 
 
 Your choices go into `.claude/settings.local.json`. That file is yours: it is gitignored, `sync.mjs` never touches it, and the command keeps anything else you put in it. Deleting it turns everything back on.
 
+`--lean recommended` only adds: it turns off what the recommendations say, and leaves off whatever you already turned off, even items the recommendations would keep.
+
 Without a terminal (CI, scripts) and without `--lean`, the step is skipped. `--lean off` skips it too.
 
 ## How each item is switched off
